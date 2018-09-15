@@ -11,13 +11,13 @@ HTTPRequestHandle hdl;
 AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 {
 	std::stringstream userAgentStream;
-	userAgentStream << exports.pluginName << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
+	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
 	userAgent = userAgentStream.str();
 }
 
 void AutoReplayUploaderPlugin::onLoad()
 {
-	auto steamApi = GetModuleHandle("steam_api.dll");
+	HMODULE steamApi = GetModuleHandle("steam_api.dll");
 
 	steamHTTPInstance = (ISteamHTTP*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamHTTP"))();
 	
@@ -30,11 +30,6 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.").bindTo(savedReplayPath);
 	cvarManager->registerCvar("cl_autoreplayupload_calculated", "1", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
-
-	//cvarManager->registerNotifier("ultest", [this](std::vector<string> params)
-	//{
-	//	UploadToCalculated("test.replay");
-	//}, "", PERMISSION_ALL);
 }
 
 void AutoReplayUploaderPlugin::onUnload()
@@ -66,9 +61,9 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	soccarReplay.ExportReplay(*savedReplayPath);
 
 	UploadToCalculated(*savedReplayPath);
-
 }
-std::vector<uint8> postData;
+
+
 void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 {
 	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);

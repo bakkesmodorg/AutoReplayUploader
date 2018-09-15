@@ -143,6 +143,7 @@ private:
 	std::shared_ptr<std::string> savedReplayPath = std::make_shared<std::string>("");
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::vector<FileUploadData*> fileUploadsInProgress;
+	std::vector<uint8> postData;
 	bool fileUploadThreadActive = false;
 public:
 	AutoReplayUploaderPlugin();
