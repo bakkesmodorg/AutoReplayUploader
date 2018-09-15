@@ -127,6 +127,9 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 		if ((*it)->canBeDeleted)
 		{
 			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
+
+			cvarManager->log("Request successful: " + to_string((*it)->successful));
+			cvarManager->log("Reponse code: " + to_string((*it)->statusCode));
 			delete (*it);
 			cvarManager->log("Erased request");
 			it = fileUploadsInProgress.erase(it);

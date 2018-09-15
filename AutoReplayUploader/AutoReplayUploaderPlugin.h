@@ -5,7 +5,7 @@
 #include "ISteamHTTP.h"
 #include <string>
 
-#define CALCULATED_ENDPOINT "http://127.0.0.1:8000/"
+#define CALCULATED_ENDPOINT "https://calculated.gg/replays/parse"
 #define UPLOAD_BOUNDARY "----BakkesModFileUpload90m8924r390j34f0"
 
 //S_API void SteamAPI_RegisterCallResult( class CCallbackBase *pCallback, SteamAPICall_t hAPICall );
@@ -123,9 +123,12 @@ public:
 	HTTPRequestHandle requestHandle = NULL;
 	SteamAPICall_t apiCall = NULL;
 	bool canBeDeleted = false;
-
+	bool successful = false;
+	EHTTPStatusCode statusCode = k_EHTTPStatusCodeInvalid;
 	void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure)
 	{
+		successful = pCallback->m_bRequestSuccessful;
+		statusCode = pCallback->m_eStatusCode;
 		canBeDeleted = true;
 	}
 
