@@ -17,19 +17,24 @@ AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 
 void AutoReplayUploaderPlugin::onLoad()
 {
-	steamHTTPInstance = (ISteamHTTP*)((uintptr_t(__cdecl*)(void))GetProcAddress(
-		GetModuleHandleA("steam_api.dll"), "SteamHTTP"))();
+	auto steamApi = GetModuleHandle("steam_api.dll");
+
+	steamHTTPInstance = (ISteamHTTP*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamHTTP"))();
 	
+	SteamAPI_RunCallbacks_Function = (SteamAPI_RunCallbacks_typedef)(GetProcAddress(steamApi, "SteamAPI_RunCallbacks"));
+	SteamAPI_RegisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_RegisterCallResult"));
+	SteamAPI_UnregisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_UnregisterCallResult"));
+
 	gameWrapper->HookEventWithCaller<ServerWrapper>("Function TAGame.GameEvent_Soccar_TA.EventMatchEnded", 
 		std::bind(&AutoReplayUploaderPlugin::OnGameComplete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 	cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.").bindTo(savedReplayPath);
-	cvarManager->registerCvar("cl_autoreplayupload_calculated", "1", "Upload to calculated.gg or not", true, true, 0, true, 1).bindTo(uploadToCalculated);
+	cvarManager->registerCvar("cl_autoreplayupload_calculated", "1", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
 
-	cvarManager->registerNotifier("ultest", [this](std::vector<string> params)
-	{
-		UploadToCalculated("test.replay");
-	}, "", PERMISSION_ALL);
+	//cvarManager->registerNotifier("ultest", [this](std::vector<string> params)
+	//{
+	//	UploadToCalculated("test.replay");
+	//}, "", PERMISSION_ALL);
 }
 
 void AutoReplayUploaderPlugin::onUnload()
@@ -56,7 +61,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 	if (file_exists(*savedReplayPath))
 	{
-		
+		remove((*savedReplayPath).c_str());
 	}
 	soccarReplay.ExportReplay(*savedReplayPath);
 
@@ -103,6 +108,37 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 		return;
 	}
 	cvarManager->log("Body size: " + to_string(postData.size()));
-	steamHTTPInstance->SendHTTPRequest(hdl, callHandle);
+	FileUploadData* uploadData = new FileUploadData();
+	uploadData->requestHandle = hdl;
+	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
+	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
+
+	fileUploadsInProgress.push_back(uploadData);
+	CheckFileUploadProgress(gameWrapper.get());
+}
+
+void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
+{
+	cvarManager->log("Running callback, size: " + to_string(fileUploadsInProgress.size()));
+	SteamAPI_RunCallbacks_Function();
+	cvarManager->log("Ran callback");
+	for (auto it = fileUploadsInProgress.begin(); it != fileUploadsInProgress.end();)
+	{
+		if ((*it)->canBeDeleted)
+		{
+			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
+			delete (*it);
+			cvarManager->log("Erased request");
+			it = fileUploadsInProgress.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+	if (!fileUploadsInProgress.empty())
+	{
+		gw->SetTimeout(std::bind(&AutoReplayUploaderPlugin::CheckFileUploadProgress, this, std::placeholders::_1), .5f);
+	}
 }
 
