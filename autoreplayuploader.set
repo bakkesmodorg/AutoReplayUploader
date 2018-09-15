@@ -1,0 +1,4 @@
+Auto replay uploader
+9|This plugin will automatically upload replays of finished games to other services
+8|
+1|Enable automatic replay uploading to calculated.gg|cl_autoreplayupload_calculated
