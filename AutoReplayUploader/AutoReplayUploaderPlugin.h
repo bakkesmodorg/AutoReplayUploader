@@ -5,7 +5,7 @@
 #include "ISteamHTTP.h"
 #include <string>
 
-#define CALCULATED_ENDPOINT "https://calculated.gg/replays/parse"
+#define CALCULATED_ENDPOINT_DEFAULT "https://calculated.gg/api/upload"
 #define UPLOAD_BOUNDARY "----BakkesModFileUpload90m8924r390j34f0"
 
 //S_API void SteamAPI_RegisterCallResult( class CCallbackBase *pCallback, SteamAPICall_t hAPICall );
@@ -140,7 +140,6 @@ class AutoReplayUploaderPlugin : public BakkesMod::Plugin::BakkesModPlugin
 private:
 	std::string userAgent;
 	ISteamHTTP* steamHTTPInstance = NULL;
-	std::shared_ptr<std::string> savedReplayPath = std::make_shared<std::string>("");
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::vector<FileUploadData*> fileUploadsInProgress;
 	std::vector<uint8> postData;

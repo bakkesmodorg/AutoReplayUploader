@@ -28,8 +28,10 @@ void AutoReplayUploaderPlugin::onLoad()
 	gameWrapper->HookEventWithCaller<ServerWrapper>("Function TAGame.GameEvent_Soccar_TA.EventMatchEnded", 
 		std::bind(&AutoReplayUploaderPlugin::OnGameComplete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-	cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.").bindTo(savedReplayPath);
+	cvarManager->registerCvar("cl_autoreplayupload_filepath", ".\\bakkesmod\\data\\autoreplaysave.replay", "Path to save to be uploaded replay to.");
 	cvarManager->registerCvar("cl_autoreplayupload_calculated", "1", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
+	cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
+
 }
 
 void AutoReplayUploaderPlugin::onUnload()
@@ -54,13 +56,16 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		cvarManager->log("Could not upload replay, replay is NULL!");
 		return;
 	}
-	if (file_exists(*savedReplayPath))
+	std::string replayPath = cvarManager->getCvar("cl_autoreplayupload_filepath").getStringValue(); //"./bakkesmod/data/autoreplaysave.replay";//
+	if (file_exists(replayPath))
 	{
-		remove((*savedReplayPath).c_str());
+		cvarManager->log("Removing existing file: " + replayPath);
+		remove(replayPath.c_str());
 	}
-	soccarReplay.ExportReplay(*savedReplayPath);
-
-	UploadToCalculated(*savedReplayPath);
+	cvarManager->log("Exporting replay to " + replayPath);
+	soccarReplay.ExportReplay(replayPath);
+	cvarManager->log("Replay exported!");
+	UploadToCalculated(replayPath);
 }
 
 
@@ -72,17 +77,17 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 	cvarManager->log("Replay size: " + to_string(replayFileSize));
 	std::vector<uint8> data(replayFileSize, 0);
 	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
-	cvarManager->log("data size: " + to_string(data.size()));
+	cvarManager->log("Replay data size: " + to_string(data.size()));
 	replayFile.close();
 
 	HTTPRequestHandle hdl;
-	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT);
+	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, cvarManager->getCvar("cl_autoreplayupload_calculated_endpoint").getStringValue().c_str());
 	SteamAPICall_t* callHandle = NULL;
 	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
 
 	std::stringstream postBody;
 	postBody << "--" << UPLOAD_BOUNDARY << "\r\n";
-	postBody << "Content-Disposition: form-data; name=\"file\"; filename=\"autosavedreplay.replay\"" << "\r\n";
+	postBody << "Content-Disposition: form-data; name=\"replays\"; filename=\"autosavedreplay.replay\"" << "\r\n";
 	postBody << "Content-Type: application/octet-stream" << "\r\n";
 	postBody << "\r\n";
 	postBody << std::string(data.begin(), data.end());
@@ -98,11 +103,11 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 
 	if (!steamHTTPInstance->SetHTTPRequestRawPostBody(hdl, contentType.str().c_str(), &postData[0], postData.size()))
 	{
-		cvarManager->log("Could not set post body!");
+		cvarManager->log("Could not set post body, not uploading replay!");
 		steamHTTPInstance->ReleaseHTTPRequest(hdl);
 		return;
 	}
-	cvarManager->log("Body size: " + to_string(postData.size()));
+	cvarManager->log("Full request body size: " + to_string(postData.size()));
 	FileUploadData* uploadData = new FileUploadData();
 	uploadData->requestHandle = hdl;
 	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
@@ -114,9 +119,9 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 
 void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 {
-	cvarManager->log("Running callback, size: " + to_string(fileUploadsInProgress.size()));
+	cvarManager->log("Running callback, files left to upload: " + to_string(fileUploadsInProgress.size()));
 	SteamAPI_RunCallbacks_Function();
-	cvarManager->log("Ran callback");
+	cvarManager->log("Executed Steam callbacks");
 	for (auto it = fileUploadsInProgress.begin(); it != fileUploadsInProgress.end();)
 	{
 		if ((*it)->canBeDeleted)
@@ -124,7 +129,7 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
 
 			cvarManager->log("Request successful: " + to_string((*it)->successful));
-			cvarManager->log("Reponse code: " + to_string((*it)->statusCode));
+			cvarManager->log("Response code: " + to_string((*it)->statusCode));
 			delete (*it);
 			cvarManager->log("Erased request");
 			it = fileUploadsInProgress.erase(it);
