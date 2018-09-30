@@ -46,6 +46,9 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	//cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.");
 	cvarManager->registerCvar("cl_autoreplayupload_calculated", "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing", "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
+
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_authkey", "", "Auth token needed to upload replays to ballchasing.com");
 	//cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
 
 }
@@ -56,7 +59,7 @@ void AutoReplayUploaderPlugin::onUnload()
 
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, std::string eventName)
 {
-	if (!*uploadToCalculated)
+	if (!*uploadToCalculated && !*uploadToBallchasing)
 	{
 		return; //Not uploading replays
 	}
@@ -81,28 +84,27 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	cvarManager->log("Exporting replay to " + replayPath);
 	soccarReplay.ExportReplay(replayPath);
 	cvarManager->log("Replay exported!");
-	UploadToCalculated(replayPath);
+	if (*uploadToCalculated) 
+	{
+		UploadToCalculated(replayPath);
+	}
+	if (*uploadToBallchasing)
+	{
+
+	}
+	CheckFileUploadProgress(gameWrapper.get());
 }
 
 
 void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 {
-	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);
-	std::streamsize replayFileSize = replayFile.tellg();
-	if (replayFileSize < 100)
+	std::vector<uint8> data;
+	if (!LoadReplay(filename, data))
 	{
-		cvarManager->log("Replay size is too low, replay didn't export correctly?");
+		cvarManager->log("Export failed! Aborting upload");
 		return;
 	}
-	replayFile.seekg(0, std::ios::beg);
-	cvarManager->log("Replay size: " + to_string(replayFileSize));
-	std::vector<uint8> data(replayFileSize, 0);
-	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
-	cvarManager->log("Replay data size: " + to_string(data.size()));
-	replayFile.close();
-
 	HTTPRequestHandle hdl;
-	//cvarManager->getCvar("cl_autoreplayupload_calculated_endpoint").getStringValue().c_str()
 	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT_DEFAULT);
 	SteamAPICall_t* callHandle = NULL;
 	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
@@ -136,7 +138,70 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
 
 	fileUploadsInProgress.push_back(uploadData);
-	CheckFileUploadProgress(gameWrapper.get());
+	
+}
+
+void AutoReplayUploaderPlugin::UploadToBallchasing(std::string filename)
+{
+	std::vector<uint8> data;
+	if (!LoadReplay(filename, data))
+	{
+		cvarManager->log("Export failed! Aborting upload");
+		return;
+	}
+	HTTPRequestHandle hdl;
+	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT_DEFAULT);
+	SteamAPICall_t* callHandle = NULL;
+	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
+
+	std::stringstream postBody;
+	postBody << "--" << UPLOAD_BOUNDARY << "\r\n";
+	postBody << "Content-Disposition: form-data; name=\"replays\"; filename=\"autosavedreplay.replay\"" << "\r\n";
+	postBody << "Content-Type: application/octet-stream" << "\r\n";
+	postBody << "\r\n";
+	postBody << std::string(data.begin(), data.end());
+	postBody << "\r\n";
+	postBody << "--" << UPLOAD_BOUNDARY << "--" << std::endl;
+
+	auto postBodyString = postBody.str();
+	postData = std::vector<uint8>(postBodyString.begin(), postBodyString.end());
+
+	std::stringstream contentType;
+	contentType << "multipart/form-data;boundary=" << UPLOAD_BOUNDARY << "";
+	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Content-Length", to_string(postData.size()).c_str());
+
+	if (!steamHTTPInstance->SetHTTPRequestRawPostBody(hdl, contentType.str().c_str(), &postData[0], postData.size()))
+	{
+		cvarManager->log("Could not set post body, not uploading replay!");
+		steamHTTPInstance->ReleaseHTTPRequest(hdl);
+		return;
+	}
+	cvarManager->log("Full request body size: " + to_string(postData.size()));
+	FileUploadData* uploadData = new FileUploadData();
+	uploadData->requestHandle = hdl;
+	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
+	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
+
+	fileUploadsInProgress.push_back(uploadData);
+
+}
+
+bool AutoReplayUploaderPlugin::LoadReplay(std::string filename, std::vector<uint8>& byteArray)
+{
+	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);
+	std::streamsize replayFileSize = replayFile.tellg();
+	if (replayFileSize < 100)
+	{
+		cvarManager->log("Replay size is too low, replay didn't export correctly?");
+		return false;
+	}
+	replayFile.seekg(0, std::ios::beg);
+	cvarManager->log("Replay size: " + to_string(replayFileSize));
+	std::vector<uint8> data(replayFileSize, 0);
+	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
+	cvarManager->log("Replay data size: " + to_string(data.size()));
+	replayFile.close();
+	return true;
 }
 
 void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
