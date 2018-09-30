@@ -152,8 +152,7 @@ public:
 	virtual void onLoad();
 	virtual void onUnload();
 	void OnGameComplete(ServerWrapper caller, void* params, std::string eventName);
-	void UploadToCalculated(std::string filename);
-	void UploadToBallchasing(std::string filename);
-	bool LoadReplay(std::string filename, std::vector<uint8>& byteArray);
+	void UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey);
+	std::vector<uint8> LoadReplay(std::string filename);
 	void CheckFileUploadProgress(GameWrapper* gw);
 };

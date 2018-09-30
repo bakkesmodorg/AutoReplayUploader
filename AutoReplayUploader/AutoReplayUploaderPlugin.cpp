@@ -86,82 +86,49 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	cvarManager->log("Replay exported!");
 	if (*uploadToCalculated) 
 	{
-		UploadToCalculated(replayPath);
+		UploadReplayToEndpoint(replayPath, CALCULATED_ENDPOINT_DEFAULT, "replays", "");
 	}
 	if (*uploadToBallchasing)
 	{
-
+		std::string authKey = cvarManager->getCvar("cl_autoreplayupload_ballchasing_authkey").getStringValue();
+		if (authKey.empty())
+		{
+			//TODO: toast
+			cvarManager->log("Cannot upload to ballchasing.com, no authkey set!");
+		}
+		else 
+		{
+			UploadReplayToEndpoint(replayPath, BALLCHASING_ENDPOINT_DEFAULT, "file", authKey);
+		}
 	}
 	CheckFileUploadProgress(gameWrapper.get());
 }
 
-
-void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
+void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey)
 {
-	std::vector<uint8> data;
-	if (!LoadReplay(filename, data))
+	std::vector<uint8> data = LoadReplay(filename);
+	if (data.size() < 1)
 	{
 		cvarManager->log("Export failed! Aborting upload");
 		return;
 	}
+	cvarManager->log("Uploading replay to " + endpointUrl);
 	HTTPRequestHandle hdl;
-	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT_DEFAULT);
+	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, endpointUrl.c_str());
 	SteamAPICall_t* callHandle = NULL;
 	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
-
+	if (!authKey.empty())
+	{
+		steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Authorization", authKey.c_str());
+	}
 	std::stringstream postBody;
 	postBody << "--" << UPLOAD_BOUNDARY << "\r\n";
-	postBody << "Content-Disposition: form-data; name=\"replays\"; filename=\"autosavedreplay.replay\"" << "\r\n";
-	postBody << "Content-Type: application/octet-stream" << "\r\n";
+	postBody << "Content-Disposition: form-data; name=\"" << postName << "\"; filename=\"autosavedreplay.replay\"" << "\r\n";
+	postBody << "Content-Type: multipart/form-data" << "\r\n";
 	postBody << "\r\n";
 	postBody << std::string(data.begin(), data.end());
 	postBody << "\r\n";
-	postBody << "--" << UPLOAD_BOUNDARY << "--" << std::endl;
-	
-	auto postBodyString = postBody.str();
-	postData = std::vector<uint8>(postBodyString.begin(), postBodyString.end());
-
-	std::stringstream contentType;
-	contentType << "multipart/form-data;boundary=" << UPLOAD_BOUNDARY << "";
-	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Content-Length", to_string(postData.size()).c_str());
-
-	if (!steamHTTPInstance->SetHTTPRequestRawPostBody(hdl, contentType.str().c_str(), &postData[0], postData.size()))
-	{
-		cvarManager->log("Could not set post body, not uploading replay!");
-		steamHTTPInstance->ReleaseHTTPRequest(hdl);
-		return;
-	}
-	cvarManager->log("Full request body size: " + to_string(postData.size()));
-	FileUploadData* uploadData = new FileUploadData();
-	uploadData->requestHandle = hdl;
-	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
-	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
-
-	fileUploadsInProgress.push_back(uploadData);
-	
-}
-
-void AutoReplayUploaderPlugin::UploadToBallchasing(std::string filename)
-{
-	std::vector<uint8> data;
-	if (!LoadReplay(filename, data))
-	{
-		cvarManager->log("Export failed! Aborting upload");
-		return;
-	}
-	HTTPRequestHandle hdl;
-	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT_DEFAULT);
-	SteamAPICall_t* callHandle = NULL;
-	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
-
-	std::stringstream postBody;
-	postBody << "--" << UPLOAD_BOUNDARY << "\r\n";
-	postBody << "Content-Disposition: form-data; name=\"replays\"; filename=\"autosavedreplay.replay\"" << "\r\n";
-	postBody << "Content-Type: application/octet-stream" << "\r\n";
-	postBody << "\r\n";
-	postBody << std::string(data.begin(), data.end());
-	postBody << "\r\n";
-	postBody << "--" << UPLOAD_BOUNDARY << "--" << std::endl;
+	postBody << "--" << UPLOAD_BOUNDARY << "--" << "\r\n";
 
 	auto postBodyString = postBody.str();
 	postData = std::vector<uint8>(postBodyString.begin(), postBodyString.end());
@@ -186,22 +153,23 @@ void AutoReplayUploaderPlugin::UploadToBallchasing(std::string filename)
 
 }
 
-bool AutoReplayUploaderPlugin::LoadReplay(std::string filename, std::vector<uint8>& byteArray)
+std::vector<uint8> AutoReplayUploaderPlugin::LoadReplay(std::string filename)
 {
 	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);
 	std::streamsize replayFileSize = replayFile.tellg();
 	if (replayFileSize < 100)
 	{
 		cvarManager->log("Replay size is too low, replay didn't export correctly?");
-		return false;
+		return std::vector<uint8>();
 	}
 	replayFile.seekg(0, std::ios::beg);
 	cvarManager->log("Replay size: " + to_string(replayFileSize));
 	std::vector<uint8> data(replayFileSize, 0);
+	data.reserve(replayFileSize);
 	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
 	cvarManager->log("Replay data size: " + to_string(data.size()));
 	replayFile.close();
-	return true;
+	return data;
 }
 
 void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
@@ -213,10 +181,20 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 	{
 		if ((*it)->canBeDeleted)
 		{
-			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
+			uint8 buf[4096];
+			buf[0] = buf[4095] = '\0';
+			uint32 body_size = 0;
+			steamHTTPInstance->GetHTTPResponseBodySize((*it)->requestHandle, &body_size);
+			//Let buffer max be 4096 (save last byte for nullbyte)
+			body_size = min(4095, body_size);
+			steamHTTPInstance->GetHTTPResponseBodyData((*it)->requestHandle, buf, body_size);
+			
 
 			cvarManager->log("Request successful: " + to_string((*it)->successful));
 			cvarManager->log("Response code: " + to_string((*it)->statusCode));
+			cvarManager->log("Response body size: " + to_string(body_size));
+			cvarManager->log("Response body: " + std::string(buf, buf + body_size));
+			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
 			delete (*it);
 			cvarManager->log("Erased request");
 			it = fileUploadsInProgress.erase(it);
