@@ -18,19 +18,35 @@ AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 void AutoReplayUploaderPlugin::onLoad()
 {
 	HMODULE steamApi = GetModuleHandle("steam_api.dll");
-
+	if (steamApi == NULL)
+	{
+		cvarManager->log("Steam API dll not loaded, note sure how this is possible!");
+		return;
+	}
 	steamHTTPInstance = (ISteamHTTP*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamHTTP"))();
 	
+	if (steamHTTPInstance == NULL)
+	{
+		cvarManager->log("Could not find Steam HTTP instance, cancelling plugin load");
+		return;
+	}
+
 	SteamAPI_RunCallbacks_Function = (SteamAPI_RunCallbacks_typedef)(GetProcAddress(steamApi, "SteamAPI_RunCallbacks"));
 	SteamAPI_RegisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_RegisterCallResult"));
 	SteamAPI_UnregisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_UnregisterCallResult"));
 
+	if (SteamAPI_RunCallbacks_Function == NULL || SteamAPI_RegisterCallResult_Function == NULL || SteamAPI_UnregisterCallResult_Function == NULL)
+	{
+		cvarManager->log("Could not find all functions in SteamAPI DLL!");
+		return;
+	}
+
 	gameWrapper->HookEventWithCaller<ServerWrapper>("Function TAGame.GameEvent_Soccar_TA.EventMatchEnded", 
 		std::bind(&AutoReplayUploaderPlugin::OnGameComplete, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-	cvarManager->registerCvar("cl_autoreplayupload_filepath", ".\\bakkesmod\\data\\autoreplaysave.replay", "Path to save to be uploaded replay to.");
-	cvarManager->registerCvar("cl_autoreplayupload_calculated", "1", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
-	cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
+	//cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.");
+	cvarManager->registerCvar("cl_autoreplayupload_calculated", "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
+	//cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
 
 }
 
@@ -56,7 +72,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		cvarManager->log("Could not upload replay, replay is NULL!");
 		return;
 	}
-	std::string replayPath = cvarManager->getCvar("cl_autoreplayupload_filepath").getStringValue(); //"./bakkesmod/data/autoreplaysave.replay";//
+	std::string replayPath = "./bakkesmod/data/autoreplaysave.replay";// cvarManager->getCvar("cl_autoreplayupload_filepath").getStringValue(); //"./bakkesmod/data/autoreplaysave.replay";//
 	if (file_exists(replayPath))
 	{
 		cvarManager->log("Removing existing file: " + replayPath);
@@ -73,6 +89,11 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 {
 	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);
 	std::streamsize replayFileSize = replayFile.tellg();
+	if (replayFileSize < 100)
+	{
+		cvarManager->log("Replay size is too low, replay didn't export correctly?");
+		return;
+	}
 	replayFile.seekg(0, std::ios::beg);
 	cvarManager->log("Replay size: " + to_string(replayFileSize));
 	std::vector<uint8> data(replayFileSize, 0);
@@ -81,7 +102,8 @@ void AutoReplayUploaderPlugin::UploadToCalculated(std::string filename)
 	replayFile.close();
 
 	HTTPRequestHandle hdl;
-	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, cvarManager->getCvar("cl_autoreplayupload_calculated_endpoint").getStringValue().c_str());
+	//cvarManager->getCvar("cl_autoreplayupload_calculated_endpoint").getStringValue().c_str()
+	hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodPOST, CALCULATED_ENDPOINT_DEFAULT);
 	SteamAPICall_t* callHandle = NULL;
 	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
 
