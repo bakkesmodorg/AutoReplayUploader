@@ -118,7 +118,8 @@ private:
 	func_t m_Func;
 };
 
-struct FileUploadData
+
+struct HTTPRequestData
 {
 public:
 	HTTPRequestHandle requestHandle = NULL;
@@ -126,14 +127,42 @@ public:
 	bool canBeDeleted = false;
 	bool successful = false;
 	EHTTPStatusCode statusCode = k_EHTTPStatusCodeInvalid;
-	void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure)
+	virtual void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure)
 	{
 		successful = pCallback->m_bRequestSuccessful;
 		statusCode = pCallback->m_eStatusCode;
 		canBeDeleted = true;
 	}
 
+	CCallResult< HTTPRequestData, HTTPRequestCompleted_t > requestCompleteCallback;
+};
+
+struct FileUploadData : public HTTPRequestData
+{
 	CCallResult< FileUploadData, HTTPRequestCompleted_t > requestCompleteCallback;
+};
+
+struct AuthKeyCheckUploadData : public HTTPRequestData
+{
+public:
+	std::shared_ptr<CVarManagerWrapper> cvarManager;
+	AuthKeyCheckUploadData(std::shared_ptr<CVarManagerWrapper> cvm)
+	{
+		cvarManager = cvm;
+	}
+
+	void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure)
+	{
+		HTTPRequestData::OnRequestComplete(pCallback, failure);
+		std::string result = "Invalid auth key!";
+		if (statusCode == 200)
+		{
+			result = "Auth key correct!";
+		}
+		cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue(result);
+	}
+
+	CCallResult< AuthKeyCheckUploadData, HTTPRequestCompleted_t > requestCompleteCallback;
 };
 
 class AutoReplayUploaderPlugin : public BakkesMod::Plugin::BakkesModPlugin
@@ -143,7 +172,7 @@ private:
 	ISteamHTTP* steamHTTPInstance = NULL;
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
-	std::vector<FileUploadData*> fileUploadsInProgress;
+	std::vector<HTTPRequestData*> fileUploadsInProgress;
 	std::vector<uint8> postData;
 	bool fileUploadThreadActive = false;
 
@@ -155,4 +184,5 @@ public:
 	void UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey);
 	std::vector<uint8> LoadReplay(std::string filename);
 	void CheckFileUploadProgress(GameWrapper* gw);
+	void TestBallchasingAuth(std::vector<string> params);
 };

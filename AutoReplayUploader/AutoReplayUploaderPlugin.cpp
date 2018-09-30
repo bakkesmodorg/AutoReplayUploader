@@ -46,9 +46,19 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	//cvarManager->registerCvar("cl_autoreplayupload_filepath", "./bakkesmod/data/autoreplaysave.replay", "Path to save to be uploaded replay to.");
 	cvarManager->registerCvar("cl_autoreplayupload_calculated", "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
-	cvarManager->registerCvar("cl_autoreplayupload_ballchasing", "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
 
-	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_authkey", "", "Auth token needed to upload replays to ballchasing.com");
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing", "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
+	
+
+	//Auth token response, stored in cvar so we can display it in the plugins tab. Should not be exposed to user!
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_testkeyresult", "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_authkey", "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
+	{
+		//User changed authkey, reset testkeyresult
+		cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue("Untested");
+	});
+	cvarManager->registerNotifier("cl_autoreplayupload_ballchasing_testkey", std::bind(&AutoReplayUploaderPlugin::TestBallchasingAuth, this, std::placeholders::_1), 
+		"Checks whether ballchasing authkey is valid", PERMISSION_ALL);
 	//cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
 
 }
@@ -208,5 +218,23 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 	{
 		gw->SetTimeout(std::bind(&AutoReplayUploaderPlugin::CheckFileUploadProgress, this, std::placeholders::_1), .5f);
 	}
+}
+
+void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<string> params)
+{
+	HTTPRequestHandle hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodGET, "https://ballchasing.com/api/");
+	SteamAPICall_t* callHandle = NULL;
+	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
+
+	std::string authKey = cvarManager->getCvar("cl_autoreplayupload_ballchasing_authkey").getStringValue();
+	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Authorization", authKey.c_str());
+
+	AuthKeyCheckUploadData* uploadData = new AuthKeyCheckUploadData(cvarManager);
+	uploadData->requestHandle = hdl;
+	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
+	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
+	
+	fileUploadsInProgress.push_back(uploadData);
+	CheckFileUploadProgress(gameWrapper.get());
 }
 
