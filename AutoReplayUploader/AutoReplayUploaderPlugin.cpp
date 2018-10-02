@@ -15,6 +15,24 @@ AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 	userAgent = userAgentStream.str();
 }
 
+std::string GenerateUrl(std::string baseUrl, std::map<std::string, std::string> getParams)
+{
+	std::stringstream urlStream;
+	urlStream << baseUrl;
+	if (!getParams.empty())
+	{
+		urlStream << "?";
+
+		for (auto it = getParams.begin(); it != getParams.end(); it++)
+		{
+			if (it != getParams.begin())
+				urlStream << "&";
+			urlStream << (*it).first << "=" << (*it).second;
+		}
+	}
+	return urlStream.str();
+}
+
 void AutoReplayUploaderPlugin::onLoad()
 {
 	HMODULE steamApi = GetModuleHandle("steam_api.dll");
@@ -52,6 +70,10 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	//Auth token response, stored in cvar so we can display it in the plugins tab. Should not be exposed to user!
 	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_testkeyresult", "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
+	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_visibility", "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false).addOnValueChanged([this](std::string oldValue, CVarWrapper cvar)
+	{
+		//cvarManager->log(GenerateUrl(BALLCHASING_ENDPOINT_DEFAULT, { { "visibility", cvar.getStringValue() } }));
+	});;
 	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_authkey", "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{
 		//User changed authkey, reset testkeyresult
@@ -108,11 +130,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		}
 		else 
 		{
-			UploadReplayToEndpoint(replayPath, BALLCHASING_ENDPOINT_DEFAULT, "file", authKey);
+			std::string visibility = cvarManager->getCvar("cl_autoreplayupload_ballchasing_visibility").getStringValue();
+			UploadReplayToEndpoint(replayPath, GenerateUrl(BALLCHASING_ENDPOINT_DEFAULT, { {"visibility", visibility} }), "file", authKey);
 		}
 	}
 	CheckFileUploadProgress(gameWrapper.get());
 }
+
+
 
 void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey)
 {
