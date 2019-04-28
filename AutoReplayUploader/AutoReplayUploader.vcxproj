@@ -100,7 +100,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>python "F:\Bakkesmod\development\quicktest\bakkes_patchplugin.py" "$(TargetPath)"</Command>
+      <Command>C:\Users\Chris\Downloads\bakkesmod-patch.exe "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

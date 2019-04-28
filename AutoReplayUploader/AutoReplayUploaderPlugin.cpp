@@ -41,14 +41,39 @@ void AutoReplayUploaderPlugin::onLoad()
 		cvarManager->log("Steam API dll not loaded, note sure how this is possible!");
 		return;
 	}
-	steamHTTPInstance = (ISteamHTTP*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamHTTP"))();
+	ISteamClient* steamClient = (ISteamClient*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamClient"))();
+
+	if (steamClient == NULL)
+	{
+		cvarManager->log("Could not find Steam client, cancelling plugin load");
+		return;
+	}
+
+	HSteamUser steamUser = (HSteamUser)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamAPI_GetHSteamUser"))();
+
+	if (steamUser == NULL)
+	{
+		cvarManager->log("Could not find Steam user, cancelling plugin load");
+		return;
+	}
+
+	HSteamPipe steamPipe = (HSteamPipe)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamAPI_GetHSteamPipe"))();
 	
-	if (steamHTTPInstance == NULL)
+	if (steamPipe == NULL)
+	{
+		cvarManager->log("Could not find Steam pipe, cancelling plugin load");
+		return;
+	}
+
+	ISteamHTTP* steamHTTPInstanceRet = (ISteamHTTP*)steamClient->GetISteamHTTP(steamUser, steamPipe, "STEAMHTTP_INTERFACE_VERSION002");
+	
+	if (steamHTTPInstanceRet == NULL)
 	{
 		cvarManager->log("Could not find Steam HTTP instance, cancelling plugin load");
 		return;
 	}
-
+	
+	steamHTTPInstance = steamHTTPInstanceRet; 
 	SteamAPI_RunCallbacks_Function = (SteamAPI_RunCallbacks_typedef)(GetProcAddress(steamApi, "SteamAPI_RunCallbacks"));
 	SteamAPI_RegisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_RegisterCallResult"));
 	SteamAPI_UnregisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_UnregisterCallResult"));

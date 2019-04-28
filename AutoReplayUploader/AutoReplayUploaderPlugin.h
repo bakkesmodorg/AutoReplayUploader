@@ -14,8 +14,10 @@
 
 
 typedef void(__cdecl* SteamAPI_RunCallbacks_typedef)();
+typedef void*(__cdecl* SteamAPI_ISteamClient_GetISteamHTTP_typedef)(void* steamClient);
 typedef void(__cdecl* SteamAPI_RegisterCallResult_typedef)(class CCallbackBase *pCallback, SteamAPICall_t hAPICall);
 typedef void(__cdecl* SteamAPI_UnregisterCallResult_typedef)(class CCallbackBase *pCallback, SteamAPICall_t hAPICall);
+
 SteamAPI_RunCallbacks_typedef SteamAPI_RunCallbacks_Function;
 SteamAPI_RegisterCallResult_typedef SteamAPI_RegisterCallResult_Function;
 SteamAPI_UnregisterCallResult_typedef SteamAPI_UnregisterCallResult_Function;
