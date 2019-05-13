@@ -1,5 +1,7 @@
 #include "AutoReplayUploaderPlugin.h"
 #include "bakkesmod/wrappers/GameEvent/ReplayWrapper.h"
+#include "bakkesmod/wrappers/GameEvent/ReplayDirectorWrapper.h"
+#include "bakkesmod/wrappers/GameEvent/ReplaySoccarWrapper.h"
 #include "utils/io.h"
 #include <sstream>
 #include <windows.h>
