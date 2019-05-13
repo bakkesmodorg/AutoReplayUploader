@@ -131,14 +131,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (replayDirector.IsNull())
 	{
 		cvarManager->log("Could not upload replay, director is NULL!");
-		if(*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (1)");
+		if(*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (1)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
 	if (soccarReplay.memory_address == NULL)
 	{
 		cvarManager->log("Could not upload replay, replay is NULL!");
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (2)");
+		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (2)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	std::string replayPath = "./bakkesmod/data/autoreplaysave.replay";// cvarManager->getCvar("cl_autoreplayupload_filepath").getStringValue(); //"./bakkesmod/data/autoreplaysave.replay";//
@@ -159,9 +159,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		std::string authKey = cvarManager->getCvar("cl_autoreplayupload_ballchasing_authkey").getStringValue();
 		if (authKey.empty())
 		{
-			//TODO: toast
 			cvarManager->log("Cannot upload to ballchasing.com, no authkey set!");
-			if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo");
+			if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo", 3.5f, ToastType_Error);
 		}
 		else 
 		{
@@ -180,7 +179,7 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std:
 	if (data.size() < 1)
 	{
 		cvarManager->log("Export failed! Aborting upload");
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (3)");
+		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (3)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	cvarManager->log("Uploading replay to " + endpointUrl);
@@ -206,7 +205,7 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std:
 
 	std::stringstream contentType;
 	contentType << "multipart/form-data;boundary=" << UPLOAD_BOUNDARY << "";
-	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Content-Length", to_string(postData.size()).c_str());
+	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Content-Length", std::to_string(postData.size()).c_str());
 
 	if (!steamHTTPInstance->SetHTTPRequestRawPostBody(hdl, contentType.str().c_str(), &postData[0], postData.size()))
 	{
@@ -214,7 +213,7 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std:
 		steamHTTPInstance->ReleaseHTTPRequest(hdl);
 		return;
 	}
-	cvarManager->log("Full request body size: " + to_string(postData.size()));
+	cvarManager->log("Full request body size: " + std::to_string(postData.size()));
 	ReplayFileUploadData* uploadData = new ReplayFileUploadData();
 	uploadData->requestHandle = hdl;
 	uploadData->endpoint = endpointBaseUrl;
@@ -236,18 +235,18 @@ std::vector<uint8> AutoReplayUploaderPlugin::LoadReplay(std::string filename)
 		return std::vector<uint8>();
 	}
 	replayFile.seekg(0, std::ios::beg);
-	cvarManager->log("Replay size: " + to_string(replayFileSize));
+	cvarManager->log("Replay size: " + std::to_string(replayFileSize));
 	std::vector<uint8> data(replayFileSize, 0);
 	data.reserve(replayFileSize);
 	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
-	cvarManager->log("Replay data size: " + to_string(data.size()));
+	cvarManager->log("Replay data size: " + std::to_string(data.size()));
 	replayFile.close();
 	return data;
 }
 
 void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 {
-	cvarManager->log("Running callback, files left to upload: " + to_string(fileUploadsInProgress.size()));
+	cvarManager->log("Running callback, files left to upload: " + std::to_string(fileUploadsInProgress.size()));
 	SteamAPI_RunCallbacks_Function();
 	cvarManager->log("Executed Steam callbacks");
 	for (auto it = fileUploadsInProgress.begin(); it != fileUploadsInProgress.end();)
@@ -263,9 +262,9 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 			steamHTTPInstance->GetHTTPResponseBodyData((*it)->requestHandle, buf, body_size);
 			
 
-			cvarManager->log("Request successful: " + to_string((*it)->successful));
-			cvarManager->log("Response code: " + to_string((*it)->statusCode));
-			cvarManager->log("Response body size: " + to_string(body_size));
+			cvarManager->log("Request successful: " + std::to_string((*it)->successful));
+			cvarManager->log("Response code: " + std::to_string((*it)->statusCode));
+			cvarManager->log("Response body size: " + std::to_string(body_size));
 			cvarManager->log("Response body: " + std::string(buf, buf + body_size));
 			steamHTTPInstance->ReleaseHTTPRequest((*it)->requestHandle);
 			delete (*it);
@@ -283,7 +282,7 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 	}
 }
 
-void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<string> params)
+void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<std::string> params)
 {
 	HTTPRequestHandle hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodGET, "https://ballchasing.com/api/");
 	SteamAPICall_t* callHandle = NULL;
@@ -308,19 +307,22 @@ void ReplayFileUploadData::OnRequestComplete(HTTPRequestCompleted_t * pCallback,
 	if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) {
 		std::string message = "Uploaded replay to " + endpoint + " successfully!";
 		std::string logo_to_use = endpoint + "_logo";
+		uint8_t toastType = ToastType_OK;
 		if (!successful)
 		{
 			message = "Unable to upload replay to " + endpoint + ". (Network error)";
+			toastType = ToastType_Error;
 		}
 		else if (!(statusCode >= 200 && statusCode < 300))
 		{
 			message = "Unable to upload replay to " + endpoint + ". (Server returned " + std::to_string(statusCode) + ")";
+			toastType = ToastType_Error;
 		}
 		if (endpoint.find("."))
 		{
 			logo_to_use = endpoint.substr(0, endpoint.find(".") - 1) + "_logo";
 		}
-		requester->gameWrapper->Toast("Autoreplayuploader", message, logo_to_use);
+		requester->gameWrapper->Toast("Autoreplayuploader", message, logo_to_use, 3.5f, toastType);
 	}
 }
 
@@ -328,10 +330,12 @@ void AuthKeyCheckUploadData::OnRequestComplete(HTTPRequestCompleted_t * pCallbac
 {
 	HTTPRequestData::OnRequestComplete(pCallback, failure);
 	std::string result = "Invalid auth key!";
+	uint8_t toastType = ToastType_Warning;
 	if (statusCode == 200)
 	{
 		result = "Auth key correct!";
+		toastType = ToastType_OK;
 	}
 	cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue(result);
-	if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) requester->gameWrapper->Toast("Autoreplayuploader", result, "ballchasing_logo");
+	if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) requester->gameWrapper->Toast("Autoreplayuploader", result, "ballchasing_logo", 3.5f, toastType);
 }

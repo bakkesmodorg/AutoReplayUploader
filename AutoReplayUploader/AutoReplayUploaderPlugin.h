@@ -191,5 +191,5 @@ public:
 	void UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey, std::string endpointBaseUrl);
 	std::vector<uint8> LoadReplay(std::string filename);
 	void CheckFileUploadProgress(GameWrapper* gw);
-	void TestBallchasingAuth(std::vector<string> params);
+	void TestBallchasingAuth(std::vector<std::string> params);
 };
