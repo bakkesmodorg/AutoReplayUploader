@@ -117,14 +117,26 @@ void AutoReplayUploaderPlugin::onLoad()
 	//gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
 	cvarManager->registerCvar("cl_autoreplayupload_notifications", "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
 
-	//cvarManager->registerCvar("cl_autoreplayupload_replaynametemplate", "", "Template for in game name of replay").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
-	//{
-	//	//cvarManager->log(GenerateUrl(BALLCHASING_REPLAY_TEMPLATENAME, { { "visibility", cvar.getStringValue() } }));
-	//});
+	cvarManager->registerCvar("cl_autoreplayupload_templatesequence", "0", "Current Template Sequence value to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
+	cvarManager->registerCvar("cl_autoreplayupload_replaynametemplate", "", "Template for in game name of replay", true, false, 0, false, 0, true);
 }
 
 void AutoReplayUploaderPlugin::onUnload()
 {
+}
+
+void SetReplayName(ReplaySoccarWrapper& soccarReplay, std::string templateString, int seq)
+{
+	std:string date = soccarReplay.GetDate().ToString();
+	std::string playerName = soccarReplay.GetPlayerName().ToString();
+
+	bool won = soccarReplay.GetPrimaryPlayerTeam() == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
+
+	std::stringstream ss;
+	ss << date << "-" << playerName << "-" << (won ? "W" : "L") << seq;
+	std::string s = ss.str();
+
+	soccarReplay.SetReplayName(s);
 }
 
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, std::string eventName)
@@ -154,10 +166,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		remove(replayPath.c_str());
 	}
 
-	//std::string nameTemplate = cvarManager->getCvar("cl_autoreplayupload_replaynametemplate").getStringValue();
-	std:string replayName = "tynisreplay";
-
-	soccarReplay.SetReplayName(replayName);
+	SetReplayName(soccarReplay, cvarManager->getCvar("cl_autoreplayupload_replaynametemplate").getStringValue(), *templateSequence);
+	*templateSequence = (*templateSequence) + 1;
 
 	cvarManager->log("Exporting replay to " + replayPath);
 	soccarReplay.ExportReplay(replayPath);
