@@ -177,7 +177,6 @@ private:
 	ISteamHTTP* steamHTTPInstance = NULL;
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
-	std::shared_ptr<int> templateSequence = std::make_shared<int>(0);
 	
 	std::vector<HTTPRequestData*> fileUploadsInProgress;
 	std::vector<uint8> postData;
