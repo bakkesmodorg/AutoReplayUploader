@@ -100,7 +100,7 @@ void AutoReplayUploaderPlugin::onLoad()
 	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_visibility", "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false).addOnValueChanged([this](std::string oldValue, CVarWrapper cvar)
 	{
 		//cvarManager->log(GenerateUrl(BALLCHASING_ENDPOINT_DEFAULT, { { "visibility", cvar.getStringValue() } }));
-	});;
+	});
 	cvarManager->registerCvar("cl_autoreplayupload_ballchasing_authkey", "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{
 		//User changed authkey, reset testkeyresult
@@ -113,10 +113,14 @@ void AutoReplayUploaderPlugin::onLoad()
 	/*
 	Load notification assets
 	*/
-	gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
-	gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
+	//gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
+	//gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
 	cvarManager->registerCvar("cl_autoreplayupload_notifications", "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
 
+	//cvarManager->registerCvar("cl_autoreplayupload_replaynametemplate", "", "Template for in game name of replay").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
+	//{
+	//	//cvarManager->log(GenerateUrl(BALLCHASING_REPLAY_TEMPLATENAME, { { "visibility", cvar.getStringValue() } }));
+	//});
 }
 
 void AutoReplayUploaderPlugin::onUnload()
@@ -133,14 +137,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (replayDirector.IsNull())
 	{
 		cvarManager->log("Could not upload replay, director is NULL!");
-		if(*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (1)", "default", 3.5f, ToastType_Error);
+		//if(*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (1)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
 	if (soccarReplay.memory_address == NULL)
 	{
 		cvarManager->log("Could not upload replay, replay is NULL!");
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (2)", "default", 3.5f, ToastType_Error);
+		//if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (2)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	std::string replayPath = "./bakkesmod/data/autoreplaysave.replay";// cvarManager->getCvar("cl_autoreplayupload_filepath").getStringValue(); //"./bakkesmod/data/autoreplaysave.replay";//
@@ -149,6 +153,12 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		cvarManager->log("Removing existing file: " + replayPath);
 		remove(replayPath.c_str());
 	}
+
+	//std::string nameTemplate = cvarManager->getCvar("cl_autoreplayupload_replaynametemplate").getStringValue();
+	std:string replayName = "tynisreplay";
+
+	soccarReplay.SetReplayName(replayName);
+
 	cvarManager->log("Exporting replay to " + replayPath);
 	soccarReplay.ExportReplay(replayPath);
 	cvarManager->log("Replay exported!");
@@ -162,7 +172,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		if (authKey.empty())
 		{
 			cvarManager->log("Cannot upload to ballchasing.com, no authkey set!");
-			if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo", 3.5f, ToastType_Error);
+			//if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo", 3.5f, ToastType_Error);
 		}
 		else 
 		{
@@ -181,7 +191,7 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std:
 	if (data.size() < 1)
 	{
 		cvarManager->log("Export failed! Aborting upload");
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (3)", "default", 3.5f, ToastType_Error);
+		//if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (3)", "default", 3.5f, ToastType_Error);
 		return;
 	}
 	cvarManager->log("Uploading replay to " + endpointUrl);
@@ -306,7 +316,7 @@ void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<std::string> para
 void ReplayFileUploadData::OnRequestComplete(HTTPRequestCompleted_t * pCallback, bool failure)
 {
 	HTTPRequestData::OnRequestComplete(pCallback, failure);
-	if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) {
+	/*if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) {
 		std::string message = "Uploaded replay to " + endpoint + " successfully!";
 		std::string logo_to_use = endpoint + "_logo";
 		uint8_t toastType = ToastType_OK;
@@ -325,19 +335,19 @@ void ReplayFileUploadData::OnRequestComplete(HTTPRequestCompleted_t * pCallback,
 			logo_to_use = endpoint.substr(0, endpoint.find(".") - 1) + "_logo";
 		}
 		requester->gameWrapper->Toast("Autoreplayuploader", message, logo_to_use, 3.5f, toastType);
-	}
+	}*/
 }
 
 void AuthKeyCheckUploadData::OnRequestComplete(HTTPRequestCompleted_t * pCallback, bool failure)
 {
 	HTTPRequestData::OnRequestComplete(pCallback, failure);
 	std::string result = "Invalid auth key!";
-	uint8_t toastType = ToastType_Warning;
+	//uint8_t toastType = ToastType_Warning;
 	if (statusCode == 200)
 	{
 		result = "Auth key correct!";
-		toastType = ToastType_OK;
+		//toastType = ToastType_OK;
 	}
 	cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue(result);
-	if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) requester->gameWrapper->Toast("Autoreplayuploader", result, "ballchasing_logo", 3.5f, toastType);
+	//if (*((AutoReplayUploaderPlugin*)requester)->showNotifications) requester->gameWrapper->Toast("Autoreplayuploader", result, "ballchasing_logo", 3.5f, toastType);
 }
