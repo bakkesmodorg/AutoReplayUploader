@@ -103,6 +103,10 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 	// Replay Name template variables
 	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, "", "Template for in game name of replay", true, true, 0, true, 0, true);
 	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
+	cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
+	{
+		cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
+	});
 
 	// Notification variables
 	cvarManager->registerCvar(CVAR_PLUGIN_SHOW_NOTIFICATIONS, "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
@@ -246,7 +250,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 *		{DAY} - Day of the month 1-31
 *		{HOUR} - Hour of the day 0-23
 *		{MIN} - Min of the hour 0-59
-*		{WINLOSS} - W or L depending on if the player won or lost
+*		{WL} - W or L depending on if the player won or lost
+*		{WINLOSS} - Win or Loss depending on if the player won or lost
 */
 void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, std::string replayName)
 {
@@ -256,7 +261,7 @@ void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccar
 
 	// Get current Sequence number
 	auto seq = std::to_string(*templateSequence);
-	*templateSequence = *templateSequence + 1; // increment to next sequence number
+	cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1);
 
 	// Get date string
 	auto t = std::time(0);
@@ -265,7 +270,8 @@ void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccar
 	// Calculate Win/Loss string
 	auto team = server.GetGameWinner();
 	auto won = team.GetTeamIndex() == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
-	auto winloss = won ? string("W") : string("L");
+	auto winloss = won ? string("Win") : string("Loss");
+	auto wl = won ? string("W") : string("L");
 
 	cvarManager->log("Username: " + steamUserName);
 	cvarManager->log("Mode: " + mode);
@@ -282,6 +288,7 @@ void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccar
 	ReplaceAll(replayName, "{HOUR}", std::to_string(now->tm_hour));
 	ReplaceAll(replayName, "{MIN}", std::to_string(now->tm_min));
 	ReplaceAll(replayName, "{WINLOSS}", winloss);
+	ReplaceAll(replayName, "{WL}", wl);
 
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
@@ -312,7 +319,10 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, Uplo
 		if (authKey.empty())
 		{
 			cvarManager->log("Cannot upload to ballchasing.com, no authkey set!");
-			//if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo", 3.5f, ToastType_Error);
+			return;
+#ifdef TOAST
+			if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Cannot upload to ballchasing.com, no authkey set!", "ballchasing_logo", 3.5f, ToastType_Error);
+#endif
 		}
 		break;
 	case CALCULATED:
