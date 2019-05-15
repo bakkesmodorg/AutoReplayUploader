@@ -149,7 +149,7 @@ struct ReplayFileUploadData : public FileUploadData
 {
 public:
 	std::string endpoint;
-	
+
 	//
 	virtual void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure);
 
@@ -165,9 +165,14 @@ public:
 	}
 
 	void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure);
-	
+
 
 	CCallResult< AuthKeyCheckUploadData, HTTPRequestCompleted_t > requestCompleteCallback;
+};
+
+enum UploadEndpoints {
+	BALLCHASING,
+	CALCULATED
 };
 
 class AutoReplayUploaderPlugin : public BakkesMod::Plugin::BakkesModPlugin
@@ -177,19 +182,25 @@ private:
 	ISteamHTTP* steamHTTPInstance = NULL;
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
-	
+	std::shared_ptr<int> templateSequence = std::make_shared<int>(0);
+
 	std::vector<HTTPRequestData*> fileUploadsInProgress;
 	std::vector<uint8> postData;
+	std::string steamUserName;
 	bool fileUploadThreadActive = false;
-	
+
+	void InitSteamClient();
+	void InitPluginVariables();
+
 public:
 	std::shared_ptr<bool> showNotifications = std::make_shared<bool>(true);
 	AutoReplayUploaderPlugin();
 	virtual void onLoad();
 	virtual void onUnload();
 	void OnGameComplete(ServerWrapper caller, void* params, std::string eventName);
-	void UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey, std::string endpointBaseUrl);
-	std::vector<uint8> LoadReplay(std::string filename);
+	void UploadReplayToEndpoint(std::string filename, UploadEndpoints endpoint);
+	std::vector<uint8> GetReplayBytes(std::string filename);
 	void CheckFileUploadProgress(GameWrapper* gw);
 	void TestBallchasingAuth(std::vector<std::string> params);
+	void SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, std::string templateString);
 };
