@@ -149,7 +149,7 @@ struct ReplayFileUploadData : public FileUploadData
 {
 public:
 	std::string endpoint;
-	
+
 	//
 	virtual void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure);
 
@@ -165,7 +165,7 @@ public:
 	}
 
 	void OnRequestComplete(HTTPRequestCompleted_t* pCallback, bool failure);
-	
+
 
 	CCallResult< AuthKeyCheckUploadData, HTTPRequestCompleted_t > requestCompleteCallback;
 };
@@ -191,7 +191,7 @@ private:
 
 	void InitSteamClient();
 	void InitPluginVariables();
-	
+
 public:
 	std::shared_ptr<bool> showNotifications = std::make_shared<bool>(true);
 	AutoReplayUploaderPlugin();
