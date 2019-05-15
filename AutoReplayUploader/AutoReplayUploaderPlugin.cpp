@@ -142,34 +142,35 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 
 void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, std::string replayName)
 {
+	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
 	auto mode = GetPlaylistName(playlist.GetPlaylistId());
-	auto team = server.GetGameWinner();
-	auto teamIdx = team.GetTeamIndex();
 
+	// Get current Sequence number
 	auto seq = std::to_string(*templateSequence);
 	*templateSequence = *templateSequence + 1; // increment to next sequence number
 
+	// Get date string
 	auto t = std::time(0);
 	auto now = std::localtime(&t);
 	auto date = std::to_string(now->tm_mon + 1) + "-" + std::to_string(now->tm_mday) + "-" + std::to_string(now->tm_year % 100) + " " + std::to_string(now->tm_hour) + ":" + std::to_string(now->tm_min);
 
-	auto t0Score = soccarReplay.GetTeam0Score();
-	auto t1Score = soccarReplay.GetTeam1Score();
-	auto won = teamIdx == 0 ? t0Score > t1Score : t1Score > t0Score;
+	// Calculate Win/Loss string
+	auto team = server.GetGameWinner();
+	auto won = team.GetTeamIndex() == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
 	auto winloss = won ? string("W") : string("L");
 
-	cvarManager->log("Date: " + date);
-	cvarManager->log("Mode: " + mode);
 	cvarManager->log("Username: " + steamUserName);
+	cvarManager->log("Mode: " + mode);
 	cvarManager->log("Sequence: " + seq);
+	cvarManager->log("Date: " + date);
 	cvarManager->log("WinLoss: " + winloss);
 
-	replaceAll(replayName, "{DATE}", date);
-	replaceAll(replayName, "{MODE}", mode);
 	replaceAll(replayName, "{PLAYER}", steamUserName);
-	replaceAll(replayName, "{WINLOSS}", winloss);
+	replaceAll(replayName, "{MODE}", mode);
 	replaceAll(replayName, "{NUM}", seq);
+	replaceAll(replayName, "{DATE}", date);
+	replaceAll(replayName, "{WINLOSS}", winloss);
 
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
