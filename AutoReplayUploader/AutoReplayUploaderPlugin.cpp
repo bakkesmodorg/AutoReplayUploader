@@ -91,7 +91,7 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
 
-	// Ball Chasing Authorization variables
+	// Ball Chasing variables
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{   // Auth token response, stored in cvar so we can display it in the plugins tab. Should not be exposed to user!
@@ -116,8 +116,8 @@ void AutoReplayUploaderPlugin::InitSteamClient()
 		cvarManager->log("Steam API dll not loaded, note sure how this is possible!");
 		return;
 	}
-	ISteamClient* steamClient = (ISteamClient*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamClient"))();
 
+	ISteamClient* steamClient = (ISteamClient*)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamClient"))();
 	if (steamClient == NULL)
 	{
 		cvarManager->log("Could not find Steam client, cancelling plugin load");
@@ -125,7 +125,6 @@ void AutoReplayUploaderPlugin::InitSteamClient()
 	}
 
 	HSteamUser steamUser = (HSteamUser)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamAPI_GetHSteamUser"))();
-
 	if (steamUser == NULL)
 	{
 		cvarManager->log("Could not find Steam user, cancelling plugin load");
@@ -133,26 +132,23 @@ void AutoReplayUploaderPlugin::InitSteamClient()
 	}
 
 	HSteamPipe steamPipe = (HSteamPipe)((uintptr_t(__cdecl*)(void))GetProcAddress(steamApi, "SteamAPI_GetHSteamPipe"))();
-
 	if (steamPipe == NULL)
 	{
 		cvarManager->log("Could not find Steam pipe, cancelling plugin load");
 		return;
 	}
 
-	ISteamHTTP* steamHTTPInstanceRet = (ISteamHTTP*)steamClient->GetISteamHTTP(steamUser, steamPipe, "STEAMHTTP_INTERFACE_VERSION002");
-
-	if (steamHTTPInstanceRet == NULL)
+	// Finally setup steam http client instance we will use to upload replays
+	steamHTTPInstance = (ISteamHTTP*)steamClient->GetISteamHTTP(steamUser, steamPipe, "STEAMHTTP_INTERFACE_VERSION002");
+	if (steamHTTPInstance == NULL)
 	{
 		cvarManager->log("Could not find Steam HTTP instance, cancelling plugin load");
 		return;
 	}
 
-	steamHTTPInstance = steamHTTPInstanceRet;
 	SteamAPI_RunCallbacks_Function = (SteamAPI_RunCallbacks_typedef)(GetProcAddress(steamApi, "SteamAPI_RunCallbacks"));
 	SteamAPI_RegisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_RegisterCallResult"));
 	SteamAPI_UnregisterCallResult_Function = (SteamAPI_RegisterCallResult_typedef)(GetProcAddress(steamApi, "SteamAPI_UnregisterCallResult"));
-
 	if (SteamAPI_RunCallbacks_Function == NULL || SteamAPI_RegisterCallResult_Function == NULL || SteamAPI_UnregisterCallResult_Function == NULL)
 	{
 		cvarManager->log("Could not find all functions in SteamAPI DLL!");
