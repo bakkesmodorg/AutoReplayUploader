@@ -5,10 +5,12 @@
 #include "utils/io.h"
 #include <sstream>
 #include <windows.h>
+#include "isteamfriends.h"
 
 BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0)
 
 HTTPRequestHandle hdl;
+string GetPlaylistName(int playlistId);
 
 AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 {
@@ -37,6 +39,7 @@ std::string GenerateUrl(std::string baseUrl, std::map<std::string, std::string> 
 
 void AutoReplayUploaderPlugin::onLoad()
 {
+	cvarManager->log("onLoad.Start");
 	HMODULE steamApi = GetModuleHandle("steam_api.dll");
 	if (steamApi == NULL)
 	{
@@ -74,6 +77,8 @@ void AutoReplayUploaderPlugin::onLoad()
 		cvarManager->log("Could not find Steam HTTP instance, cancelling plugin load");
 		return;
 	}
+
+	steamUserName = steamClient->GetISteamFriends(steamUser, steamPipe, "SteamFriends017")->GetPersonaName();
 	
 	steamHTTPInstance = steamHTTPInstanceRet; 
 	SteamAPI_RunCallbacks_Function = (SteamAPI_RunCallbacks_typedef)(GetProcAddress(steamApi, "SteamAPI_RunCallbacks"));
@@ -110,37 +115,72 @@ void AutoReplayUploaderPlugin::onLoad()
 		"Checks whether ballchasing authkey is valid", PERMISSION_ALL);
 	//cvarManager->registerCvar("cl_autoreplayupload_calculated_endpoint", CALCULATED_ENDPOINT_DEFAULT, "URL to upload replay to when uploading to calculated.gg instance");
 
+	cvarManager->registerCvar("cl_autoreplayupload_replaynametemplate", "", "Template for in game name of replay", true, true, 0, true, 0, true);
+	cvarManager->registerCvar("cl_autoreplayupload_templatesequence", "0", "Current Template Sequence value to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
+
 	/*
 	Load notification assets
 	*/
 	//gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
 	//gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
 	cvarManager->registerCvar("cl_autoreplayupload_notifications", "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
-
-	cvarManager->registerCvar("cl_autoreplayupload_replaynametemplate", "", "Template for in game name of replay", true, false, 0, false, 0, true);
-	//cvarManager->registerCvar("cl_autoreplayupload_templatesequence", "0", "Current Template Sequence value to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
 }
 
 void AutoReplayUploaderPlugin::onUnload()
 {
 }
 
-void SetReplayName(ReplaySoccarWrapper& soccarReplay, std::string templateString)
-{
-	//std:string date = soccarReplay.GetDate().ToString();
-	std::string playerName = soccarReplay.GetPlayerName().ToString();
-
-	bool won = soccarReplay.GetPrimaryPlayerTeam() == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
-
-	std::stringstream ss;
-	ss << playerName << "-" << (won ? "W" : "L");
-	std::string s = ss.str();
-
-	soccarReplay.SetReplayName(s);
+void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+	if (from.empty())
+		return;
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+	}
 }
 
+void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, std::string replayName)
+{
+	auto playlist = server.GetPlaylist();
+	auto mode = GetPlaylistName(playlist.GetPlaylistId());
+	auto team = server.GetGameWinner();
+	auto teamIdx = team.GetTeamIndex();
+
+	auto seq = std::to_string(*templateSequence);
+	*templateSequence = *templateSequence + 1; // increment to next sequence number
+
+	auto t = std::time(0);
+	auto now = std::localtime(&t);
+	auto date = std::to_string(now->tm_mon + 1) + "-" + std::to_string(now->tm_mday) + "-" + std::to_string(now->tm_year % 100) + " " + std::to_string(now->tm_hour) + ":" + std::to_string(now->tm_min);
+
+	auto t0Score = soccarReplay.GetTeam0Score();
+	auto t1Score = soccarReplay.GetTeam1Score();
+	auto won = teamIdx == 0 ? t0Score > t1Score : t1Score > t0Score;
+	auto winloss = won ? string("W") : string("L");
+
+	cvarManager->log("Date: " + date);
+	cvarManager->log("Mode: " + mode);
+	cvarManager->log("Username: " + steamUserName);
+	cvarManager->log("Sequence: " + seq);
+	cvarManager->log("WinLoss: " + winloss);
+	cvarManager->log("Team: " + std::to_string(teamIdx));
+	cvarManager->log("Team0 Score: " + std::to_string(t0Score));
+	cvarManager->log("Team1 Score: " + std::to_string(t1Score));
+
+	replaceAll(replayName, "{DATE}", date);
+	replaceAll(replayName, "{MODE}", mode);
+	replaceAll(replayName, "{PLAYER}", steamUserName);
+	replaceAll(replayName, "{WINLOSS}", winloss);
+	replaceAll(replayName, "{NUM}", seq);
+
+	cvarManager->log("ReplayName: " + replayName);
+	soccarReplay.SetReplayName(replayName);
+}
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, std::string eventName)
 {
+	cvarManager->log("Function TAGame.GameEvent_Soccar_TA.EventMatchEnded");
+
 	if (!*uploadToCalculated && !*uploadToBallchasing)
 	{
 		return; //Not uploading replays
@@ -166,15 +206,16 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		remove(replayPath.c_str());
 	}
 
-	std::string replayNameTemplate = cvarManager->getCvar("cl_autoreplayupload_ballchasing_authkey").getStringValue();
+	auto replayNameTemplate = cvarManager->getCvar("cl_autoreplayupload_replaynametemplate").getStringValue();
 	if (!replayNameTemplate.empty())
 	{
-		SetReplayName(soccarReplay, replayNameTemplate);
+		SetReplayName(caller, soccarReplay, replayNameTemplate);
 	}
 
 	cvarManager->log("Exporting replay to " + replayPath);
 	soccarReplay.ExportReplay(replayPath);
 	cvarManager->log("Replay exported!");
+
 	if (*uploadToCalculated) 
 	{
 		UploadReplayToEndpoint(replayPath, CALCULATED_ENDPOINT_DEFAULT, "replays", "", "calculated.gg");
@@ -198,6 +239,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 
 void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std::string endpointUrl, std::string postName, std::string authKey, std::string endpointBaseUrl)
 {
+	cvarManager->log("UploadReplayToEndpoint.Start");
 	std::vector<uint8> data = LoadReplay(filename);
 	if (data.size() < 1)
 	{
@@ -250,6 +292,7 @@ void AutoReplayUploaderPlugin::UploadReplayToEndpoint(std::string filename, std:
 
 std::vector<uint8> AutoReplayUploaderPlugin::LoadReplay(std::string filename)
 {
+	cvarManager->log("AutoReplayUploaderPlugin.Start");
 	std::ifstream replayFile(filename, std::ios::binary | std::ios::ate);
 	std::streamsize replayFileSize = replayFile.tellg();
 	if (replayFileSize < 100)
@@ -269,6 +312,7 @@ std::vector<uint8> AutoReplayUploaderPlugin::LoadReplay(std::string filename)
 
 void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 {
+	cvarManager->log("CheckFileUploadProgress.Start");
 	cvarManager->log("Running callback, files left to upload: " + std::to_string(fileUploadsInProgress.size()));
 	SteamAPI_RunCallbacks_Function();
 	cvarManager->log("Executed Steam callbacks");
@@ -307,6 +351,7 @@ void AutoReplayUploaderPlugin::CheckFileUploadProgress(GameWrapper * gw)
 
 void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<std::string> params)
 {
+	cvarManager->log("TestBallchasingAuth.Start");
 	HTTPRequestHandle hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodGET, "https://ballchasing.com/api/");
 	SteamAPICall_t* callHandle = NULL;
 	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
