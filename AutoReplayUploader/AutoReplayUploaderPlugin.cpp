@@ -211,7 +211,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 
 	cvarManager->log("Exporting replay to " + replayPath);
-	soccarReplay.ExportReplay(replayPath);
+	soccarReplay.ExportReplay(replayPath); // %HOMEPATH%\Documents\My Games\Rocket League\TAGame\Demos
 	cvarManager->log("Replay exported!");
 
 	if (*uploadToCalculated) 
