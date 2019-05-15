@@ -164,9 +164,6 @@ void AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccar
 	cvarManager->log("Username: " + steamUserName);
 	cvarManager->log("Sequence: " + seq);
 	cvarManager->log("WinLoss: " + winloss);
-	cvarManager->log("Team: " + std::to_string(teamIdx));
-	cvarManager->log("Team0 Score: " + std::to_string(t0Score));
-	cvarManager->log("Team1 Score: " + std::to_string(t1Score));
 
 	replaceAll(replayName, "{DATE}", date);
 	replaceAll(replayName, "{MODE}", mode);
