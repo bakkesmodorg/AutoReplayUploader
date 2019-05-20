@@ -1,16 +1,43 @@
 #pragma once
 
 #include <tchar.h>
-#include <iostream>
-#include <windows.h>
+#include <Windows.h>
 #include <wininet.h>
-#include "Logger.h"
-
-#pragma comment( lib, "wininet" )
+#include <string>
 
 using namespace std;
 
+#pragma comment( lib, "wininet" )
+
 class Wininet;
+
+struct HttpRequestObject {
+	unsigned int RequestId = 0;
+	void* Requester = NULL;
+
+	string Server;
+
+	string Method = "GET";
+	int Port = 80;
+	string Page = "/";
+
+	string UserAgent = "AsyncClient";
+	string Headers = "";
+	DWORD Flags = 0;
+	DWORD Timeout = 30000;
+
+	DWORD Status = 0;
+
+	char* ReqData = NULL;
+	size_t ReqDataSize = 0;
+
+	char* RespData = NULL;
+	size_t RespDataSize = 0;
+
+	void(*RequestComplete)(HttpRequestObject*);
+};
+
+bool HttpRequestAsync(HttpRequestObject* object);
 
 struct SContext
 {
@@ -34,16 +61,10 @@ protected:
 	HINTERNET m_hConnect;
 	HINTERNET m_hRequest;
 
-	Logger* logger;
-	void* requester = NULL;
-	char* result = NULL;
-	size_t result_length = 0;
-	void(*RequestCompleteEvent) (void*, DWORD, char*, size_t) = NULL;
-
 
 public:
 
-	Wininet(Logger*);
+	Wininet(void);
 	~Wininet(void);
 
 
@@ -56,19 +77,21 @@ public:
 	};
 
 	BOOL Connect(LPCTSTR lpszAddr,
-			USHORT uPort = INTERNET_DEFAULT_HTTP_PORT,
-			LPCTSTR lpszAgent = _T("Wininet"),
-			DWORD dwTimeOut = 30000);
+		USHORT uPort = INTERNET_DEFAULT_HTTP_PORT,
+		LPCTSTR lpszAgent = _T("AsyncClient"),
+		DWORD dwTimeOut = 30000);
 
-	BOOL Post(string page, string headers, string data, char* result, size_t result_length, void(*RequestCompleteEvent) (void*, DWORD, char*, size_t), void* requester, DWORD dwTimeOut = 30000, DWORD Flags = 0);
+	BOOL Request(string method, string page, string headers = "", char* data = NULL, size_t data_size = 0, DWORD flags = 0, DWORD dwTimeOut = 30000);
 	DWORD Read(PBYTE pBuffer, DWORD dwSize, DWORD dwTimeOut = 30000);
+	DWORD GetStatusCode();
+
 	void Close();
 
 
 	static void WINAPI Callback(HINTERNET hInternet,
-				  DWORD dwContext,
-				  DWORD dwInternetStatus,
-				  LPVOID lpStatusInfo,
-				  DWORD dwStatusInfoLen);
+		DWORD dwContext,
+		DWORD dwInternetStatus,
+		LPVOID lpStatusInfo,
+		DWORD dwStatusInfoLen);
 
 };

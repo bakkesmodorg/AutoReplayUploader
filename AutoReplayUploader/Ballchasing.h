@@ -21,7 +21,7 @@ public:
 	~Ballchasing();
 
 	bool UploadReplay(string replayPath, string authKey, string visibility);
-	void UploadCompleted(DWORD status);
+	void UploadCompleted(HttpRequestObject* ctx);
 	bool TestAuthKey(string authKey);
 };
 

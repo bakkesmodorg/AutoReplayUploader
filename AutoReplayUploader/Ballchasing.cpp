@@ -11,15 +11,19 @@ Ballchasing::Ballchasing(string userAgent, string uploadBoundary, Logger* logger
 	this->logger = logger;
 }
 
-void ReplayUploadCompleted(void* requester, DWORD status, char* result, size_t result_length)
+void RequestComplete(HttpRequestObject* ctx)
 {
-	auto ballchasing = (Ballchasing*)requester;
-	ballchasing->UploadCompleted(status);
+	auto ballchasing = (Ballchasing*)ctx->Requester;
+	ballchasing->UploadCompleted(ctx);
+
+	delete[] ctx->ReqData;
+	delete[] ctx->RespData;
+	delete ctx;
 }
 
-void Ballchasing::UploadCompleted(DWORD status)
+void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
 {
-	logger->Log("UploadCompleted with status: " + to_string(status));
+	logger->Log("UploadCompleted with status: " + to_string(ctx->Status));
 }
 
 bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibility)
@@ -49,14 +53,27 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	body << "\r\n";
 	body << "--" << uploadBoundary << "--" << "\r\n";
 	auto body_str = body.str();
+	char *reqData = new char[body_str.length() + 1];
+	strcpy(reqData, body_str.c_str());
 
 	string path = AppendGetParams("api/upload", { {"visibility", visibility} });
 
-	Wininet client(logger);
-	if (client.Connect("ballchasing.com"), 443, userAgent, 30000, INTERNET_FLAG_SECURE)
-	{
-		client.Post(path, header_str, body_str, uploadReplayResult, 4096, ReplayUploadCompleted, this);
-	}
+	HttpRequestObject* request = new HttpRequestObject();
+	request->RequestId = 1;
+	request->Headers = header_str;
+	request->Server = "ballchasing.com";
+	request->Page = path;
+	request->Method = "POST";
+	request->UserAgent = userAgent;
+	request->Port = INTERNET_DEFAULT_HTTPS_PORT;
+	request->ReqData = reqData;
+	request->ReqDataSize = body_str.size();
+	request->RespData = new char[4096];
+	request->RespDataSize = 4096;
+	request->RequestComplete = &RequestComplete;
+	request->Flags = INTERNET_FLAG_SECURE;
+
+	HttpRequestAsync(request);
 
 	return true;
 }
