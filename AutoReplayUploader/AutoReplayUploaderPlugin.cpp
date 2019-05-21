@@ -37,9 +37,15 @@ string GetPlaylistName(int playlistId);
 /**
 * AutoReplayUploaderPlugin Constructor
 */
-AutoReplayUploaderPlugin::AutoReplayUploaderPlugin() : logger(cvarManager)
+AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
 {
 	plog::init(plog::debug, "bakkesmod\\plugins\\ReplayUploader.log");
+}
+
+AutoReplayUploaderPlugin::~AutoReplayUploaderPlugin()
+{
+	LOG(plog::debug) << "AutoReplayUploader destructor invoked";
+	delete logger;
 }
 
 /**
@@ -47,14 +53,15 @@ AutoReplayUploaderPlugin::AutoReplayUploaderPlugin() : logger(cvarManager)
 */
 void AutoReplayUploaderPlugin::onLoad()
 {
+	LOG(plog::debug) << "AutoReplayUploader Plugin loaded";
+	logger = new Logger(cvarManager);
+
 	stringstream userAgentStream;
 	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
 	string userAgent = userAgentStream.str();
-	
-	logger = Logger(cvarManager);
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &logger);
+	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", logger);
 	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0");
 
 	// Register for Game ending event
@@ -95,6 +102,8 @@ void AutoReplayUploaderPlugin::onLoad()
 */
 void AutoReplayUploaderPlugin::onUnload()
 {
+	LOG(plog::debug) << "AutoReplayUploader Plugin unloaded";
+
 	delete ballchasing;
 	delete calculated;
 }
@@ -170,7 +179,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 
 	// Determine the replay path and if it already exists remove it
 	stringstream path;
-	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << soccarReplay.GetId().ToString() << ".replay";
+	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << "test" << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{

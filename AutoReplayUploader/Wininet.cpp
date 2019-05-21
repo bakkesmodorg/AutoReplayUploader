@@ -1,5 +1,7 @@
 #include "Wininet.h"
 
+#include <thread>
+
 Wininet::Wininet(void)
 {
 	m_hConnectedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -302,9 +304,7 @@ DWORD WINAPI HttpPostThread(void* data) {
 
 bool HttpRequestAsync(HttpRequestObject* request)
 {
-	HANDLE thread = CreateThread(NULL, 0, HttpPostThread, (void*)request, 0, NULL);
-	if (thread) {
-		return true;
-	}
-	return false;
+	std::thread http(HttpPostThread, (void*)request);
+	http.detach();
+	return true;
 }

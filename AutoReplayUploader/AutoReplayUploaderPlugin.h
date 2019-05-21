@@ -18,18 +18,20 @@ private:
 	shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
 	shared_ptr<int> templateSequence = std::make_shared<int>(0);
-	Logger logger;
+	Logger* logger;
 
 	void InitPluginVariables();
 	void SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, std::string templateString);
 
 public:
-	shared_ptr<bool> showNotifications = std::make_shared<bool>(true);
 	AutoReplayUploaderPlugin();
+	~AutoReplayUploaderPlugin();
 
 	virtual void onLoad();
 	virtual void onUnload();
 	
 	void TestBallchasingAuth(vector<std::string> params);
 	void OnGameComplete(ServerWrapper caller, void* params, std::string eventName);
+
+	shared_ptr<bool> showNotifications = std::make_shared<bool>(true);
 };

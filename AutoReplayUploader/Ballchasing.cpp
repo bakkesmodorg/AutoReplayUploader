@@ -4,7 +4,10 @@
 #include <sstream>
 #include <fstream>
 
+#include <plog/Log.h>
+
 #include "Wininet.h"
+
 
 Ballchasing::Ballchasing(string userAgent, string uploadBoundary, Logger* logger)
 {
@@ -15,6 +18,8 @@ Ballchasing::Ballchasing(string userAgent, string uploadBoundary, Logger* logger
 
 void RequestComplete(HttpRequestObject* ctx)
 {
+	LOG(plog::debug) << "RequestComplete";
+
 	auto ballchasing = (Ballchasing*)ctx->Requester;
 	ballchasing->UploadCompleted(ctx);
 
@@ -77,6 +82,7 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 
 	HttpRequestObject* ctx = new HttpRequestObject();
 	ctx->RequestId = 1;
+	ctx->Requester = this;
 	ctx->Headers = header_str;
 	ctx->Server = "ballchasing.com";
 	ctx->Page = path;

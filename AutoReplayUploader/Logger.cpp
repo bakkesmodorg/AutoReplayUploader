@@ -13,6 +13,8 @@ void Logger::Log(string message)
 
 	if(cvarManager != NULL)
 		cvarManager->log(message);
+	else
+		LOG(plog::debug) << "cvarManager == NULL";
 }
 
 
