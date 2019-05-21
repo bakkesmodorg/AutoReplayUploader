@@ -197,6 +197,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 */
 string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string replayName)
 {
+	cvarManager->log("Using replay name template: " + replayName);
+
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
 	auto mode = GetPlaylistName(playlist.GetPlaylistId());
