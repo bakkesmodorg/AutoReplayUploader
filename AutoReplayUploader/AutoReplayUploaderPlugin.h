@@ -22,7 +22,7 @@ private:
 	shared_ptr<int> templateSequence = make_shared<int>(0);
 
 	void InitPluginVariables();
-	void SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string templateString);
+	string SetReplayNameAndExport(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string templateString);
 
 public:
 	virtual void onLoad();
