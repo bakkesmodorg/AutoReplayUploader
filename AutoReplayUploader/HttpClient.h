@@ -9,7 +9,7 @@ using namespace std;
 
 #pragma comment( lib, "wininet" )
 
-class Wininet;
+class HttpClient;
 
 struct HttpRequestObject {
 	unsigned int RequestId = 0;
@@ -41,12 +41,12 @@ bool HttpRequestAsync(HttpRequestObject* object);
 
 struct SContext
 {
-	Wininet* pObj;
+	HttpClient* pObj;
 	DWORD dwContext;
 };
 
 
-class Wininet
+class HttpClient
 {
 
 protected:
@@ -64,8 +64,8 @@ protected:
 
 public:
 
-	Wininet(void);
-	~Wininet(void);
+	HttpClient(void);
+	~HttpClient(void);
 
 
 public:

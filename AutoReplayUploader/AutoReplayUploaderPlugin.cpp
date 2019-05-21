@@ -1,17 +1,17 @@
 #include "AutoReplayUploaderPlugin.h"
 
 #include <sstream>
+#include <utils/io.h>
 
 #include "bakkesmod/wrappers/GameEvent/ReplayWrapper.h"
 #include "bakkesmod/wrappers/GameEvent/ReplayDirectorWrapper.h"
 #include "bakkesmod/wrappers/GameEvent/ReplaySoccarWrapper.h"
 
-#include "utils/io.h"
 #include "Utils.h"
 #include "Ballchasing.h"
 #include "Calculated.h"
 
-#include <plog/Log.h>
+using namespace std;
 
 BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0)
 
@@ -35,34 +35,17 @@ string GetPlaylistName(int playlistId);
 #pragma region AutoReplayUploaderPlugin Implementation
 
 /**
-* AutoReplayUploaderPlugin Constructor
-*/
-AutoReplayUploaderPlugin::AutoReplayUploaderPlugin()
-{
-	plog::init(plog::debug, "bakkesmod\\plugins\\ReplayUploader.log");
-}
-
-AutoReplayUploaderPlugin::~AutoReplayUploaderPlugin()
-{
-	LOG(plog::debug) << "AutoReplayUploader destructor invoked";
-	delete logger;
-}
-
-/**
 * OnLoad event called when the plugin is loaded by BakkesMod
 */
 void AutoReplayUploaderPlugin::onLoad()
 {
-	LOG(plog::debug) << "AutoReplayUploader Plugin loaded";
-	logger = new Logger(cvarManager);
-
 	stringstream userAgentStream;
 	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
 	string userAgent = userAgentStream.str();
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", logger);
-	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0");
+	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
+	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
 
 	// Register for Game ending event
 	gameWrapper->HookEventWithCaller<ServerWrapper>(
@@ -102,8 +85,6 @@ void AutoReplayUploaderPlugin::onLoad()
 */
 void AutoReplayUploaderPlugin::onUnload()
 {
-	LOG(plog::debug) << "AutoReplayUploader Plugin unloaded";
-
 	delete ballchasing;
 	delete calculated;
 }
@@ -178,8 +159,9 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 
 	// Determine the replay path and if it already exists remove it
+	string replayFileName = soccarReplay.GetId().IsNull() ? "autoupload" : soccarReplay.GetId().ToString();
 	stringstream path;
-	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << "test" << ".replay";
+	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << replayFileName << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{
@@ -192,29 +174,15 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	cvarManager->log("Exported replay to " + replayPath);
 
 	// Upload replay
-	//if (*uploadToCalculated)
-	//{
-	//	if (calculated->UploadReplay(replayPath) == true)
-	//	{
-	//		cvarManager->log("Uploaded replay to Calculated.gg");
-	//	}
-	//	else
-	//	{
-	//		cvarManager->log("Failed to upload replay to Calculated.gg");
-	//	}
-	//}
+	if (*uploadToCalculated)
+	{
+		calculated->UploadReplay(replayPath);
+	}
 	if (*uploadToBallchasing)
 	{
 		string authKey = cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue();
 		string visibility = cvarManager->getCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY).getStringValue();
-		if (ballchasing->UploadReplay(replayPath, authKey, visibility) == true)
-		{
-			cvarManager->log("Uploaded Replay to Ballchasing.com");
-		}
-		else
-		{
-			cvarManager->log("Failed to upload replay to Ballchasing.com");
-		}
+		ballchasing->UploadReplay(replayPath, authKey, visibility);
 	}
 }
 

@@ -2,24 +2,18 @@
 #include "Utils.h"
 
 #include <sstream>
-#include <fstream>
 
-#include <plog/Log.h>
+using namespace std;
 
-#include "Wininet.h"
-
-
-Ballchasing::Ballchasing(string userAgent, string uploadBoundary, Logger* logger)
+Ballchasing::Ballchasing(string userAgent, string uploadBoundary, shared_ptr<CVarManagerWrapper> cvarManager)
 {
-	this->userAgent = userAgent;
+	this->UserAgent = userAgent;
 	this->uploadBoundary = uploadBoundary;
-	this->logger = logger;
+	this->cvarManager = cvarManager;
 }
 
-void RequestComplete(HttpRequestObject* ctx)
+void BallchasingRequestComplete(HttpRequestObject* ctx)
 {
-	LOG(plog::debug) << "RequestComplete";
-
 	auto ballchasing = (Ballchasing*)ctx->Requester;
 	ballchasing->UploadCompleted(ctx);
 
@@ -30,22 +24,21 @@ void RequestComplete(HttpRequestObject* ctx)
 
 void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
 {
-	logger->Log("UploadCompleted with status: " + to_string(ctx->Status));
+	cvarManager->log("Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
 }
 
-bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibility)
+void Ballchasing::UploadReplay(string replayPath, string authKey, string visibility)
 {
-	logger->Log("ReplayPath: " + replayPath);
-	logger->Log("AuthKey: " + authKey);
-	logger->Log("Visibility: " + visibility);
-
-	if (userAgent.empty() || authKey.empty() || visibility.empty() || replayPath.empty())
+	if (UserAgent.empty() || authKey.empty() || visibility.empty() || replayPath.empty())
 	{
-		logger->Log("Ballchasing::UploadReplay Parameters were empty.");
-		return false;
+		cvarManager->log("Ballchasing::UploadReplay Parameters were empty.");
+		cvarManager->log("UserAgent: " + UserAgent);
+		cvarManager->log("ReplayPath: " + replayPath);
+		cvarManager->log("AuthKey: " + authKey);
+		cvarManager->log("Visibility: " + visibility);
+		return;
 	}
 
-	logger->Log("Reading file bytes: " + replayPath);
 	// Get Replay file bytes to upload
 	auto bytes = GetFileBytes(replayPath);
 
@@ -54,8 +47,6 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	headers << "Authorization: " << authKey << "\r\n";
 	headers << "Content-Type: multipart/form-data;boundary=" << uploadBoundary;
 	auto header_str = headers.str();
-
-	logger->Log("Headers: " + header_str);
 
 	// Construct body
 	stringstream body;
@@ -67,19 +58,18 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	body << "\r\n";
 	body << "--" << uploadBoundary << "--" << "\r\n";
 
+	// Convert body to vector of bytes instead of using str() which may have trouble with null termination chars
 	vector<uint8_t> buffer;
 	const string& str = body.str();
 	buffer.insert(buffer.end(), str.begin(), str.end());
 
-	char *reqData = new char[buffer.size() + 1];
-	for (int i = 0; i < buffer.size(); i++)
-		reqData[i] = buffer[i];
-	reqData[buffer.size()] = '\0';
+	// Copy vector to char* for upload
+	char *reqData = CopyToCharPtr(buffer);
 
-	cout << reqData;
-
+	// Append get parmeters to path
 	string path = AppendGetParams("api/upload", { {"visibility", visibility} });
 
+	// Setup Http Request context
 	HttpRequestObject* ctx = new HttpRequestObject();
 	ctx->RequestId = 1;
 	ctx->Requester = this;
@@ -87,21 +77,17 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	ctx->Server = "ballchasing.com";
 	ctx->Page = path;
 	ctx->Method = "POST";
-	ctx->UserAgent = userAgent;
+	ctx->UserAgent = UserAgent;
 	ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
 	ctx->ReqData = reqData;
 	ctx->ReqDataSize = buffer.size();
 	ctx->RespData = new char[4096];
 	ctx->RespDataSize = 4096;
-	ctx->RequestComplete = &RequestComplete;
+	ctx->RequestComplete = &BallchasingRequestComplete;
 	ctx->Flags = INTERNET_FLAG_SECURE;
 
-	logger->Log("ReqDataSize: " + to_string(ctx->ReqDataSize));
-	logger->Log("Path: " + path);
-
+	// Fire new thread and make request, dont't wait for response
 	HttpRequestAsync(ctx);
-
-	return true;
 }
 
 /**

@@ -1,26 +1,25 @@
 #pragma once
 
-#include "Wininet.h"
-#include "Logger.h"
+#include "HttpClient.h"
+
+#include "bakkesmod/plugin/bakkesmodplugin.h"
 
 #include <iostream>
-#include <vector>
 
 using namespace std;
 
 class Ballchasing
 {
 private:
-	string userAgent;
+	string UserAgent;
 	string uploadBoundary;
-	char uploadReplayResult[4096];
-	Logger* logger;
+	shared_ptr<CVarManagerWrapper> cvarManager = NULL;
 
 public:
-	Ballchasing(string userAgent, string uploadBoundary, Logger* logger);
+	Ballchasing(string userAgent, string uploadBoundary, shared_ptr<CVarManagerWrapper> cvarManager);
 	~Ballchasing();
 
-	bool UploadReplay(string replayPath, string authKey, string visibility);
+	void UploadReplay(string replayPath, string authKey, string visibility);
 	void UploadCompleted(HttpRequestObject* ctx);
 	bool TestAuthKey(string authKey);
 };

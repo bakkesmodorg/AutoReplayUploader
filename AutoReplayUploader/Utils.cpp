@@ -52,3 +52,12 @@ string AppendGetParams(string baseUrl, map<string, string> getParams)
 	}
 	return urlStream.str();
 }
+
+char* CopyToCharPtr(vector<uint8_t>& vector)
+{
+	char *reqData = new char[vector.size() + 1];
+	for (int i = 0; i < vector.size(); i++)
+		reqData[i] = vector[i];
+	reqData[vector.size()] = '\0';
+	return reqData;
+}

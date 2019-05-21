@@ -1,8 +1,8 @@
-#include "Wininet.h"
+#include "HttpClient.h"
 
 #include <thread>
 
-Wininet::Wininet(void)
+HttpClient::HttpClient(void)
 {
 	m_hConnectedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_hRequestOpenedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -13,7 +13,7 @@ Wininet::Wininet(void)
 	m_hRequest = NULL;
 }
 
-Wininet::~Wininet(void)
+HttpClient::~HttpClient(void)
 {
 	if (m_hConnectedEvent)
 		CloseHandle(m_hConnectedEvent);
@@ -25,7 +25,7 @@ Wininet::~Wininet(void)
 	Close();
 }
 
-void WINAPI Wininet::Callback(HINTERNET hInternet,
+void WINAPI HttpClient::Callback(HINTERNET hInternet,
 	DWORD dwContext,
 	DWORD dwInternetStatus,
 	LPVOID lpStatusInfo,
@@ -88,7 +88,7 @@ void WINAPI Wininet::Callback(HINTERNET hInternet,
 	}
 }
 
-void Wininet::Close()
+void HttpClient::Close()
 {
 	if (m_hInstance)
 	{
@@ -110,7 +110,7 @@ void Wininet::Close()
 }
 
 
-BOOL Wininet::Connect(LPCTSTR lpszAddr, USHORT uPort, LPCTSTR lpszAgent, DWORD dwTimeOut)
+BOOL HttpClient::Connect(LPCTSTR lpszAddr, USHORT uPort, LPCTSTR lpszAgent, DWORD dwTimeOut)
 {
 	Close();
 
@@ -166,7 +166,7 @@ BOOL Wininet::Connect(LPCTSTR lpszAddr, USHORT uPort, LPCTSTR lpszAgent, DWORD d
 	return TRUE;
 }
 
-BOOL Wininet::Request(string method, string page, string headers, char* data, size_t data_size, DWORD flags, DWORD dwTimeOut)
+BOOL HttpClient::Request(string method, string page, string headers, char* data, size_t data_size, DWORD flags, DWORD dwTimeOut)
 {
 
 	LPCTSTR szAcceptType = _T("*/*");
@@ -229,7 +229,7 @@ BOOL Wininet::Request(string method, string page, string headers, char* data, si
 	return TRUE;
 }
 
-DWORD Wininet::Read(PBYTE pBuffer, DWORD dwSize, DWORD dwTimeOut)
+DWORD HttpClient::Read(PBYTE pBuffer, DWORD dwSize, DWORD dwTimeOut)
 {
 	INTERNET_BUFFERS InetBuff;
 
@@ -261,7 +261,7 @@ DWORD Wininet::Read(PBYTE pBuffer, DWORD dwSize, DWORD dwTimeOut)
 	return InetBuff.dwBufferLength;
 }
 
-DWORD Wininet::GetStatusCode()
+DWORD HttpClient::GetStatusCode()
 {
 	DWORD statusCode = 0;
 	DWORD length = sizeof(DWORD);
@@ -280,24 +280,27 @@ DWORD WINAPI HttpPostThread(void* data) {
 
 	auto ctx = (HttpRequestObject*)data;
 
-	Wininet client;
-	if (client.Connect(ctx->Server.c_str(), ctx->Port, ctx->UserAgent.c_str()))  //timeout
+	HttpClient client;
+	if (!client.Connect(ctx->Server.c_str(), ctx->Port, ctx->UserAgent.c_str(), ctx->Timeout))
+		return 1;
+
+	if (!client.Request(ctx->Method, ctx->Page, ctx->Headers, ctx->ReqData, ctx->ReqDataSize, ctx->Flags, ctx->Timeout))
+		return 1;
+
+	ctx->Status = client.GetStatusCode();
+
+	if (ctx->RespData != NULL)
 	{
-		if (client.Request(ctx->Method, ctx->Page, ctx->Headers, ctx->ReqData, ctx->ReqDataSize, ctx->Flags, ctx->Timeout))
+		DWORD nLen;
+		while ((nLen = client.Read((PBYTE)ctx->RespData, ctx->RespDataSize)) > 0)
 		{
-			ctx->Status = client.GetStatusCode();
-
-			DWORD nLen;
-			while ((nLen = client.Read((PBYTE)ctx->RespData, ctx->RespDataSize)) > 0)
-			{
-				ctx->RespData[nLen] = 0;
-			}
-
-			client.Close();
-
-			ctx->RequestComplete(ctx);
+			ctx->RespData[nLen] = 0;
 		}
 	}
+
+	client.Close();
+
+	ctx->RequestComplete(ctx);
 
 	return 0;
 }

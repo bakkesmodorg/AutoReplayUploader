@@ -56,29 +56,16 @@
     <ClInclude Include="AutoReplayUploaderPlugin.h" />
     <ClInclude Include="Ballchasing.h" />
     <ClInclude Include="Calculated.h" />
-    <ClInclude Include="Logger.h" />
     <ClInclude Include="Utils.h" />
-    <ClInclude Include="Wininet.h" />
+    <ClInclude Include="HttpClient.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AutoReplayUploaderPlugin.cpp" />
     <ClCompile Include="Ballchasing.cpp" />
     <ClCompile Include="Calculated.cpp" />
-    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Utils.cpp" />
-    <ClCompile Include="Wininet.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClCompile Include="HttpClient.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Plog.1.1.0.1\build\native\plog.targets" Condition="Exists('..\packages\Plog.1.1.0.1\build\native\plog.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Plog.1.1.0.1\build\native\plog.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Plog.1.1.0.1\build\native\plog.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>
