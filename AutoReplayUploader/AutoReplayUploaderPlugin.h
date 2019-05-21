@@ -19,6 +19,7 @@ private:
 
 	shared_ptr<bool> uploadToCalculated = make_shared<bool>(false);
 	shared_ptr<bool> uploadToBallchasing = make_shared<bool>(false);
+	shared_ptr<bool> saveReplay = make_shared<bool>(false);
 	shared_ptr<int> templateSequence = make_shared<int>(0);
 
 	void InitPluginVariables();

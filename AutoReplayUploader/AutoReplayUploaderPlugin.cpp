@@ -16,7 +16,8 @@ using namespace std;
 BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0)
 
 // Constant CVAR variable names
-static const string CVAR_REPLAY_UPLOAD_PATH = "cl_autoreplayupload_filepath";
+static const string CVAR_REPLAY_EXPORT_PATH = "cl_autoreplayupload_filepath";
+static const string CVAR_REPLAY_EXPORT = "cl_autoreplayupload_save";
 static const string CVAR_UPLOAD_TO_CALCULATED = "cl_autoreplayupload_calculated";
 static const string CVAR_UPLOAD_TO_BALLCHASING = "cl_autoreplayupload_ballchasing";
 static const string CVAR_BALLCHASING_AUTH_KEY = "cl_autoreplayupload_ballchasing_authkey";
@@ -92,12 +93,13 @@ void AutoReplayUploaderPlugin::onUnload()
 void AutoReplayUploaderPlugin::InitPluginVariables()
 {
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_UPLOAD_PATH, "./bakkesmod/data", "Path to save the exported replays to.");
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "", "Path to export replays to.");
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
 
 	// What endpoints should we upload to?
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
-
+	
 	// Ball Chasing variables
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](string oldVal, CVarWrapper cvar)
@@ -168,6 +170,11 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		string authKey = cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue();
 		string visibility = cvarManager->getCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY).getStringValue();
 		ballchasing->UploadReplay(replayPath, authKey, visibility);
+	}
+	if ((*saveReplay) == false)
+	{
+		cvarManager->log("Removing replay file: " + replayPath);
+		remove(replayPath.c_str());
 	}
 }
 
@@ -248,17 +255,17 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
 	stringstream path;
-	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
+	path << cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).getStringValue() << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{
-		cvarManager->log("Removing existing file: " + replayPath);
+		cvarManager->log("Removing duplicate replay file: " + replayPath);
 		remove(replayPath.c_str());
 	}
 
 	// Export Replay
 	soccarReplay.ExportReplay(replayPath);
-	cvarManager->log("Exported replay to " + replayPath);
+	cvarManager->log("Exported replay to: " + replayPath);
 
 	return replayPath;
 }
