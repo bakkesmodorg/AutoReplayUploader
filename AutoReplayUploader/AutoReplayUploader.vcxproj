@@ -66,6 +66,9 @@
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="HttpClient.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\autoreplayuploader.set" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

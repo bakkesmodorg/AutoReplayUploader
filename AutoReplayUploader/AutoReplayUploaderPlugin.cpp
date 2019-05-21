@@ -93,8 +93,8 @@ void AutoReplayUploaderPlugin::onUnload()
 void AutoReplayUploaderPlugin::InitPluginVariables()
 {
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "", "Path to export replays to.");
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "", "Path to export replays to");
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath below", true, true, 0, true, 1).bindTo(saveReplay);
 
 	// What endpoints should we upload to?
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
@@ -111,7 +111,7 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 
 	// Replay Name template variables
 	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, "", "Template for in game name of replay", true, true, 0, true, 0, true);
-	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
+	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
 
 	// Notification variables
 	cvarManager->registerCvar(CVAR_PLUGIN_SHOW_NOTIFICATIONS, "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
@@ -203,8 +203,6 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	// Get current Sequence number
 	auto seq = to_string(*templateSequence);
-	cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1); 
-	cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
 
 	// Get date string
 	auto t = time(0);
@@ -241,7 +239,6 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	ReplaceAll(replayName, "{PLAYER}", name);
 	ReplaceAll(replayName, "{MODE}", mode);
-	ReplaceAll(replayName, "{NUM}", seq);
 	ReplaceAll(replayName, "{YEAR}", year);
 	ReplaceAll(replayName, "{MONTH}", month);
 	ReplaceAll(replayName, "{DAY}", day);
@@ -249,6 +246,13 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	ReplaceAll(replayName, "{MIN}", min);
 	ReplaceAll(replayName, "{WINLOSS}", winloss);
 	ReplaceAll(replayName, "{WL}", wl);
+	bool replaced = ReplaceAll(replayName, "{NUM}", seq);
+
+	if (replaced) // only increment sequence number if it was used
+	{
+		cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1);
+		cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
+	}
 
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
