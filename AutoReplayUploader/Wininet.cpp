@@ -283,15 +283,15 @@ DWORD WINAPI HttpPostThread(void* data) {
 	{
 		if (client.Request(ctx->Method, ctx->Page, ctx->Headers, ctx->ReqData, ctx->ReqDataSize, ctx->Flags, ctx->Timeout))
 		{
-			ctx->Status = client.GetStatusCode();
+			//ctx->Status = client.GetStatusCode();
 
-			DWORD nLen;
-			while ((nLen = client.Read((PBYTE)ctx->RespData, ctx->RespDataSize)) > 0)
-			{
-				ctx->RespData[nLen] = 0;
-			}
+			//DWORD nLen;
+			//while ((nLen = client.Read((PBYTE)ctx->RespData, ctx->RespDataSize)) > 0)
+			//{
+			//	ctx->RespData[nLen] = 0;
+			//}
 
-			client.Close();
+			//client.Close();
 
 			ctx->RequestComplete(ctx);
 		}

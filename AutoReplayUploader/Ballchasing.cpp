@@ -4,6 +4,8 @@
 #include <sstream>
 #include <fstream>
 
+#include "Wininet.h"
+
 Ballchasing::Ballchasing(string userAgent, string uploadBoundary, Logger* logger)
 {
 	this->userAgent = userAgent;
@@ -28,12 +30,17 @@ void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
 
 bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibility)
 {
+	logger->Log("ReplayPath: " + replayPath);
+	logger->Log("AuthKey: " + authKey);
+	logger->Log("Visibility: " + visibility);
+
 	if (userAgent.empty() || authKey.empty() || visibility.empty() || replayPath.empty())
 	{
 		logger->Log("Ballchasing::UploadReplay Parameters were empty.");
 		return false;
 	}
 
+	logger->Log("Reading file bytes: " + replayPath);
 	// Get Replay file bytes to upload
 	auto bytes = GetFileBytes(replayPath);
 
@@ -42,6 +49,8 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	headers << "Authorization: " << authKey << "\r\n";
 	headers << "Content-Type: multipart/form-data;boundary=" << uploadBoundary;
 	auto header_str = headers.str();
+
+	logger->Log("Headers: " + header_str);
 
 	// Construct body
 	stringstream body;
@@ -52,28 +61,39 @@ bool Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	body << string(bytes.begin(), bytes.end());
 	body << "\r\n";
 	body << "--" << uploadBoundary << "--" << "\r\n";
-	auto body_str = body.str();
-	char *reqData = new char[body_str.length() + 1];
-	strcpy(reqData, body_str.c_str());
+
+	vector<uint8_t> buffer;
+	const string& str = body.str();
+	buffer.insert(buffer.end(), str.begin(), str.end());
+
+	char *reqData = new char[buffer.size() + 1];
+	for (int i = 0; i < buffer.size(); i++)
+		reqData[i] = buffer[i];
+	reqData[buffer.size()] = '\0';
+
+	cout << reqData;
 
 	string path = AppendGetParams("api/upload", { {"visibility", visibility} });
 
-	HttpRequestObject* request = new HttpRequestObject();
-	request->RequestId = 1;
-	request->Headers = header_str;
-	request->Server = "ballchasing.com";
-	request->Page = path;
-	request->Method = "POST";
-	request->UserAgent = userAgent;
-	request->Port = INTERNET_DEFAULT_HTTPS_PORT;
-	request->ReqData = reqData;
-	request->ReqDataSize = body_str.size();
-	request->RespData = new char[4096];
-	request->RespDataSize = 4096;
-	request->RequestComplete = &RequestComplete;
-	request->Flags = INTERNET_FLAG_SECURE;
+	HttpRequestObject* ctx = new HttpRequestObject();
+	ctx->RequestId = 1;
+	ctx->Headers = header_str;
+	ctx->Server = "ballchasing.com";
+	ctx->Page = path;
+	ctx->Method = "POST";
+	ctx->UserAgent = userAgent;
+	ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
+	ctx->ReqData = reqData;
+	ctx->ReqDataSize = buffer.size();
+	ctx->RespData = new char[4096];
+	ctx->RespDataSize = 4096;
+	ctx->RequestComplete = &RequestComplete;
+	ctx->Flags = INTERNET_FLAG_SECURE;
 
-	HttpRequestAsync(request);
+	logger->Log("ReqDataSize: " + to_string(ctx->ReqDataSize));
+	logger->Log("Path: " + path);
+
+	HttpRequestAsync(ctx);
 
 	return true;
 }

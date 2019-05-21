@@ -170,7 +170,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 
 	// Determine the replay path and if it already exists remove it
 	stringstream path;
-	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("\\") << soccarReplay.GetId().ToString() << ".replay";
+	path << cvarManager->getCvar(CVAR_REPLAY_UPLOAD_PATH).getStringValue() << string("/") << soccarReplay.GetId().ToString() << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{
@@ -183,20 +183,22 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	cvarManager->log("Exported replay to " + replayPath);
 
 	// Upload replay
-	if (*uploadToCalculated)
-	{
-		if (calculated->UploadReplay(replayPath) == true)
-		{
-			cvarManager->log("Uploaded replay to Calculated.gg");
-		}
-		else
-		{
-			cvarManager->log("Failed to upload replay to Calculated.gg");
-		}
-	}
+	//if (*uploadToCalculated)
+	//{
+	//	if (calculated->UploadReplay(replayPath) == true)
+	//	{
+	//		cvarManager->log("Uploaded replay to Calculated.gg");
+	//	}
+	//	else
+	//	{
+	//		cvarManager->log("Failed to upload replay to Calculated.gg");
+	//	}
+	//}
 	if (*uploadToBallchasing)
 	{
-		if (ballchasing->UploadReplay(replayPath, cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue(), cvarManager->getCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY).getStringValue()) == true)
+		string authKey = cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue();
+		string visibility = cvarManager->getCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY).getStringValue();
+		if (ballchasing->UploadReplay(replayPath, authKey, visibility) == true)
 		{
 			cvarManager->log("Uploaded Replay to Ballchasing.com");
 		}
