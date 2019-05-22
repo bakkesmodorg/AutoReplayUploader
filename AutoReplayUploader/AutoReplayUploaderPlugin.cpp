@@ -23,7 +23,6 @@ static const string CVAR_UPLOAD_TO_BALLCHASING = "cl_autoreplayupload_ballchasin
 static const string CVAR_BALLCHASING_AUTH_KEY = "cl_autoreplayupload_ballchasing_authkey";
 static const string CVAR_BALLCHASING_AUTH_TEST_RESULT = "cl_autoreplayupload_ballchasing_testkeyresult";
 static const string CVAR_BALLCHASING_REPLAY_VISIBILITY = "cl_autoreplayupload_ballchasing_visibility";
-static const string CVAR_BALLCHASING_REPLAY_TESTKEY = "cl_autoreplayupload_ballchasing_testkey";
 static const string CVAR_REPLAY_NAME_TEMPLATE = "cl_autoreplayupload_replaynametemplate";
 static const string CVAR_REPLAY_SEQUENCE_NUM = "cl_autoreplayupload_replaysequence";
 static const string CVAR_PLUGIN_SHOW_NOTIFICATIONS = "cl_autoreplayupload_notifications";
@@ -47,18 +46,6 @@ void AutoReplayUploaderPlugin::onLoad()
 	// Setup upload handlers
 	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
 	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
-
-	// Register for Game ending event
-	gameWrapper->HookEventWithCaller<ServerWrapper>(
-		"Function TAGame.GameEvent_Soccar_TA.EventMatchEnded",
-		bind(
-			&AutoReplayUploaderPlugin::OnGameComplete,
-			this,
-			placeholders::_1,
-			placeholders::_2,
-			placeholders::_3
-		)
-		);
 
 	InitPluginVariables();
 
