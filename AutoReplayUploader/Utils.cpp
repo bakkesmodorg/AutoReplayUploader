@@ -15,7 +15,7 @@ void ReplaceAll(string& str, const string& from, const string& to) {
 /**
 * GetReplayBytes - Loads the file specified in filename and returns the bytes
 */
-vector<uint8_t> GetFileBytes(string filename, shared_ptr<CVarManagerWrapper> cvarManager)
+vector<uint8_t> GetFileBytes(string filename)
 {
 	// open the file
 	std::streampos fileSize;
@@ -24,8 +24,6 @@ vector<uint8_t> GetFileBytes(string filename, shared_ptr<CVarManagerWrapper> cva
 	// get its size
 	file.seekg(0, ios::end);
 	fileSize = file.tellg();
-
-	cvarManager->log("File byte size: " + to_string(fileSize));
 
 	if (fileSize <= 0) // in case the file does not exist for some reason
 	{

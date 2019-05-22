@@ -14,12 +14,29 @@ Ballchasing::Ballchasing(string userAgent, string uploadBoundary, shared_ptr<CVa
 
 void BallchasingRequestComplete(HttpRequestObject* ctx)
 {
-	auto ballchasing = (Ballchasing*)ctx->Requester;
-	ballchasing->UploadCompleted(ctx);
+	if (ctx->RequestId == 1)
+	{
+		auto ballchasing = (Ballchasing*)ctx->Requester;
+		ballchasing->UploadCompleted(ctx);
 
-	delete[] ctx->ReqData;
-	delete[] ctx->RespData;
-	delete ctx;
+		delete[] ctx->ReqData;
+		delete[] ctx->RespData;
+		delete ctx;
+	}
+	else if (ctx->RequestId == 2)
+	{
+		auto ballchasing = (Ballchasing*)ctx->Requester;
+		ballchasing->TestAuthKeyResult(ctx);
+
+		delete[] ctx->RespData;
+		delete ctx;
+	}
+}
+
+void Ballchasing::TestAuthKeyResult(HttpRequestObject* ctx)
+{
+	string result = ctx->Status == 200 ? "Auth key correct!" : "Invalid auth key!";
+	cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue(result);
 }
 
 void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
@@ -40,7 +57,7 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	}
 
 	// Get Replay file bytes to upload
-	auto bytes = GetFileBytes(replayPath, cvarManager);
+	auto bytes = GetFileBytes(replayPath);
 
 	// Construct headers
 	stringstream headers;
@@ -93,24 +110,29 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 /**
 * Tests the authorization key for Ballchasing.com
 */
-bool Ballchasing::TestAuthKey(string authKey)
+void Ballchasing::TestAuthKey(string authKey)
 {
-	return false;
-	/*HTTPRequestHandle hdl = steamHTTPInstance->CreateHTTPRequest(k_EHTTPMethodGET, "https://ballchasing.com/api/");
-	SteamAPICall_t* callHandle = NULL;
-	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "User-Agent", userAgent.c_str());
+	// Construct headers
+	stringstream headers;
+	headers << "Authorization: " << authKey;
+	auto header_str = headers.str();
 
-	std::string authKey = cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue();
-	steamHTTPInstance->SetHTTPRequestHeaderValue(hdl, "Authorization", authKey.c_str());
+	HttpRequestObject* ctx = new HttpRequestObject();
+	ctx->RequestId = 2;
+	ctx->Requester = this;
+	ctx->Headers = header_str;
+	ctx->Server = "ballchasing.com";
+	ctx->Page = "api/";
+	ctx->Method = "GET";
+	ctx->UserAgent = UserAgent;
+	ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
+	ctx->RespData = new char[4096];
+	ctx->RespDataSize = 4096;
+	ctx->RequestComplete = &BallchasingRequestComplete;
+	ctx->Flags = INTERNET_FLAG_SECURE;
 
-	AuthKeyCheckUploadData* uploadData = new AuthKeyCheckUploadData(cvarManager);
-	uploadData->requestHandle = hdl;
-	uploadData->requester = this;
-	steamHTTPInstance->SendHTTPRequest(uploadData->requestHandle, &uploadData->apiCall);
-	uploadData->requestCompleteCallback.Set(uploadData->apiCall, uploadData, &FileUploadData::OnRequestComplete);
-
-	fileUploadsInProgress.push_back(uploadData);
-	CheckFileUploadProgress(gameWrapper.get());*/
+	// Fire new thread and make request, dont't wait for response
+	HttpRequestAsync(ctx);
 }
 
 Ballchasing::~Ballchasing()

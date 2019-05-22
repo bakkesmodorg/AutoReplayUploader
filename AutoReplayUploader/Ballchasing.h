@@ -21,6 +21,7 @@ public:
 
 	void UploadReplay(string replayPath, string authKey, string visibility);
 	void UploadCompleted(HttpRequestObject* ctx);
-	bool TestAuthKey(string authKey);
+	void TestAuthKey(string authKey);
+	void TestAuthKeyResult(HttpRequestObject* ctx);
 };
 

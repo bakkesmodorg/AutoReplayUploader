@@ -17,6 +17,8 @@ private:
 	Ballchasing* ballchasing;
 	Calculated* calculated;
 
+	shared_ptr<string> exportPath = make_shared<string>("./bakkesmod/data/");
+	shared_ptr<string> authKey = make_shared<string>("");
 	shared_ptr<bool> uploadToCalculated = make_shared<bool>(false);
 	shared_ptr<bool> uploadToBallchasing = make_shared<bool>(false);
 	shared_ptr<bool> saveReplay = make_shared<bool>(false);

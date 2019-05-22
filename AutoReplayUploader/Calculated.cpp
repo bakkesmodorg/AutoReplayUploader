@@ -41,7 +41,7 @@ void Calculated::UploadReplay(string replayPath)
 	}
 
 	// Get Replay file bytes to upload
-	auto bytes = GetFileBytes(replayPath, cvarManager);
+	auto bytes = GetFileBytes(replayPath);
 
 	// Construct headers
 	stringstream headers;

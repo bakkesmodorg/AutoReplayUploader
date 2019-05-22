@@ -62,18 +62,6 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	InitPluginVariables();
 
-	// Register UI button press to call TestBallchasingAuth
-	cvarManager->registerNotifier(
-		CVAR_BALLCHASING_REPLAY_TESTKEY,
-		bind(
-			&AutoReplayUploaderPlugin::TestBallchasingAuth,
-			this,
-			placeholders::_1
-		),
-		"Checks whether ballchasing authkey is valid",
-		PERMISSION_ALL
-	);
-
 	// Initialize notification plugin assets
 #ifdef TOAST
 	gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
@@ -93,8 +81,36 @@ void AutoReplayUploaderPlugin::onUnload()
 void AutoReplayUploaderPlugin::InitPluginVariables()
 {
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "./bakkesmod/data/", "Path to export replays to.");
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "./bakkesmod/data/", "Path to export replays to.").bindTo(exportPath);
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
+	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	{
+		bool changed = false;
+
+		size_t found = exportPath->find("\\");
+		if (found != string::npos)
+		{
+			replace(exportPath->begin(), exportPath->end(), '\\', '/'); // replace all '\' to '/'
+			changed = true;
+		}
+
+		if (exportPath->back() == '/')
+		{
+			exportPath->pop_back();
+			changed = true;
+		}
+
+		if (exportPath->empty())
+		{
+			*exportPath = "./bakkesmod/data";
+			changed = true;
+		}
+
+		if (changed)
+		{
+			cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).setValue(*exportPath);
+		}
+	});
 
 	// What endpoints should we upload to?
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
@@ -102,10 +118,14 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 	
 	// Ball Chasing variables
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
-	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").addOnValueChanged([this](string oldVal, CVarWrapper cvar)
-	{   // Auth token response, stored in cvar so we can display it in the plugins tab. Should not be exposed to user!
-		// User changed authkey, reset testkeyresult
-		cvarManager->getCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT).setValue("Untested");
+	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(authKey);
+	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	{   
+		if (authKey->compare(oldVal) != 0)
+		{
+			// value changed so call auth
+			ballchasing->TestAuthKey(*authKey);
+		}
 	});
 	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false);
 
@@ -263,16 +283,9 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
 
-	// Make sure we have a replay path
-	string replayDir = cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).getStringValue();
-	if (replayDir.empty())
-	{
-		replayDir = string("./bakkesmod/data/");
-	}
-
 	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
 	stringstream path;
-	path << cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).getStringValue() << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
+	path << exportPath << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{
