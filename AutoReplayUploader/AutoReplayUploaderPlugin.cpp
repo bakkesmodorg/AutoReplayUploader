@@ -93,7 +93,7 @@ void AutoReplayUploaderPlugin::onUnload()
 void AutoReplayUploaderPlugin::InitPluginVariables()
 {
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "", "Path to export replays to.");
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "./bakkesmod/data/", "Path to export replays to.");
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
 
 	// What endpoints should we upload to?
@@ -229,7 +229,17 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	// Calculate Win/Loss string
 	auto team = server.GetGameWinner();
-	auto won = team.GetTeamIndex() == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
+	auto team_index = (unsigned int)server.GetLocalPrimaryPlayer().GetPRI().GetTeamNum();
+
+	cvarManager->log("TeamIndex: " + to_string(team_index));
+
+	auto team0Score = soccarReplay.GetTeam0Score();
+	auto team1Score = soccarReplay.GetTeam1Score();
+
+	cvarManager->log("Team 0 Score: " + to_string(team0Score));
+	cvarManager->log("Team 1 Score: " + to_string(team1Score));
+
+	auto won = team_index == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
 	auto winloss = won ? string("Win") : string("Loss");
 	auto wl = won ? string("W") : string("L");
 
@@ -253,6 +263,13 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
 
+	// Make sure we have a replay path
+	string replayDir = cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).getStringValue();
+	if (replayDir.empty())
+	{
+		replayDir = string("./bakkesmod/data/");
+	}
+
 	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
 	stringstream path;
 	path << cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).getStringValue() << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
@@ -266,6 +283,15 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	// Export Replay
 	soccarReplay.ExportReplay(replayPath);
 	cvarManager->log("Exported replay to: " + replayPath);
+
+	// Check to see if replay exists, if not then export to default path
+	if (!file_exists(replayPath))
+	{
+		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path instead");
+		replayPath = "./bakkesmod/data/autosaved.replay";
+		soccarReplay.ExportReplay(replayPath);
+		cvarManager->log("Exported replay to: " + replayPath);
+	}
 
 	return replayPath;
 }

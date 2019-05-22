@@ -15,24 +15,32 @@ void ReplaceAll(string& str, const string& from, const string& to) {
 /**
 * GetReplayBytes - Loads the file specified in filename and returns the bytes
 */
-vector<uint8_t> GetFileBytes(string filename)
+vector<uint8_t> GetFileBytes(string filename, shared_ptr<CVarManagerWrapper> cvarManager)
 {
-	// Open file
-	ifstream replayFile(filename, ios::binary | ios::ate);
+	// open the file
+	std::streampos fileSize;
+	std::ifstream file(filename, ios::binary);
 
-	// Determine replay size
-	streamsize replayFileSize = replayFile.tellg();
+	// get its size
+	file.seekg(0, ios::end);
+	fileSize = file.tellg();
 
-	// Initialize byte vector to size of replay
-	vector<uint8_t> data(replayFileSize, 0);
-	data.reserve(replayFileSize);
+	cvarManager->log("File byte size: " + to_string(fileSize));
 
-	// Read replay file from the beginning
-	replayFile.seekg(0, ios::beg);
-	replayFile.read(reinterpret_cast<char*>(&data[0]), replayFileSize);
-	replayFile.close();
+	if (fileSize <= 0) // in case the file does not exist for some reason
+	{
+		fileSize = 0;
+	}
 
-	return data;
+	// initialize byte vector to size of replay
+	vector<uint8_t> fileData(fileSize);
+
+	// read replay file from the beginning
+	file.seekg(0, ios::beg);
+	file.read((char*)&fileData[0], fileSize);
+	file.close();
+
+	return fileData;
 }
 
 string AppendGetParams(string baseUrl, map<string, string> getParams)

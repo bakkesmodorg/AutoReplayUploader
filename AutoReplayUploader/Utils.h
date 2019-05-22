@@ -3,11 +3,13 @@
 #include <vector>
 #include <map>
 
+#include "bakkesmod/plugin/bakkesmodplugin.h"
+
 using namespace std;
 
 void ReplaceAll(string& str, const string& from, const string& to);
 
-vector<uint8_t> GetFileBytes(string filename);
+vector<uint8_t> GetFileBytes(string filename, shared_ptr<CVarManagerWrapper> cvarManager);
 
 string AppendGetParams(string baseUrl, map<string, string> getParams);
 

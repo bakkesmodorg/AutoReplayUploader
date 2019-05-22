@@ -40,7 +40,7 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	}
 
 	// Get Replay file bytes to upload
-	auto bytes = GetFileBytes(replayPath);
+	auto bytes = GetFileBytes(replayPath, cvarManager);
 
 	// Construct headers
 	stringstream headers;
