@@ -11,5 +11,6 @@ Auto replay uploader
 12|Replay Name Template|cl_autoreplayupload_replaynametemplate
 12|Replay Name Sequence Number|cl_autoreplayupload_replaysequence
 8|
-12|Export Replay Folder|cl_autoreplayupload_filepath
+1|Save all replay files to export filepath below|cl_autoreplayupload_save
+12|Path to export replays to|cl_autoreplayupload_filepath
 9|Note: For this to work, you do NOT have to have "save all replays" enabled!

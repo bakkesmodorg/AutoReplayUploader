@@ -5,7 +5,7 @@
 
 using namespace std;
 
-void ReplaceAll(string& str, const string& from, const string& to);
+bool ReplaceAll(string& str, const string& from, const string& to);
 
 vector<uint8_t> GetFileBytes(string filename);
 

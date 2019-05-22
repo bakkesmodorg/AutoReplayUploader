@@ -131,7 +131,7 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 
 	// Replay Name template variables
 	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, "", "Template for in game name of replay", true, true, 0, true, 0, true);
-	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name.", true, true, 0, false, 0, true).bindTo(templateSequence);
+	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
 
 	// Notification variables
 	cvarManager->registerCvar(CVAR_PLUGIN_SHOW_NOTIFICATIONS, "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
@@ -217,14 +217,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 */
 string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string replayName)
 {
+	cvarManager->log("Using replay name template: " + replayName);
+
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
 	auto mode = GetPlaylistName(playlist.GetPlaylistId());
 
 	// Get current Sequence number
 	auto seq = to_string(*templateSequence);
-	cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1); 
-	cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
 
 	// Get date string
 	auto t = time(0);
@@ -271,7 +271,6 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	ReplaceAll(replayName, "{PLAYER}", name);
 	ReplaceAll(replayName, "{MODE}", mode);
-	ReplaceAll(replayName, "{NUM}", seq);
 	ReplaceAll(replayName, "{YEAR}", year);
 	ReplaceAll(replayName, "{MONTH}", month);
 	ReplaceAll(replayName, "{DAY}", day);
@@ -279,6 +278,13 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	ReplaceAll(replayName, "{MIN}", min);
 	ReplaceAll(replayName, "{WINLOSS}", winloss);
 	ReplaceAll(replayName, "{WL}", wl);
+	bool replaced = ReplaceAll(replayName, "{NUM}", seq);
+
+	if (replaced) // only increment sequence number if it was used
+	{
+		cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1);
+		cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
+	}
 
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);

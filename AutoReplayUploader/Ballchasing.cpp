@@ -23,7 +23,7 @@ void BallchasingRequestComplete(HttpRequestObject* ctx)
 		delete[] ctx->RespData;
 		delete ctx;
 	}
-	else if (ctx->RequestId == 2)
+	else if(ctx->RequestId == 2)
 	{
 		auto ballchasing = (Ballchasing*)ctx->Requester;
 		ballchasing->TestAuthKeyResult(ctx);
