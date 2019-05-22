@@ -16,20 +16,13 @@ using namespace std;
 BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0)
 
 // Constant CVAR variable names
-static const string CVAR_REPLAY_EXPORT_PATH = "cl_autoreplayupload_filepath";
-static const string CVAR_REPLAY_EXPORT = "cl_autoreplayupload_save";
-static const string CVAR_UPLOAD_TO_CALCULATED = "cl_autoreplayupload_calculated";
-static const string CVAR_UPLOAD_TO_BALLCHASING = "cl_autoreplayupload_ballchasing";
-static const string CVAR_BALLCHASING_AUTH_KEY = "cl_autoreplayupload_ballchasing_authkey";
-static const string CVAR_BALLCHASING_AUTH_TEST_RESULT = "cl_autoreplayupload_ballchasing_testkeyresult";
-static const string CVAR_BALLCHASING_REPLAY_VISIBILITY = "cl_autoreplayupload_ballchasing_visibility";
-static const string CVAR_BALLCHASING_REPLAY_TESTKEY = "cl_autoreplayupload_ballchasing_testkey";
-static const string CVAR_REPLAY_NAME_TEMPLATE = "cl_autoreplayupload_replaynametemplate";
-static const string CVAR_REPLAY_SEQUENCE_NUM = "cl_autoreplayupload_replaysequence";
-static const string CVAR_PLUGIN_SHOW_NOTIFICATIONS = "cl_autoreplayupload_notifications";
-
-// TODO: uncomment or remove #ifdef's when new Bakkes mod API becomes available that has Toast notifications
-// #define TOAST
+#define CVAR_REPLAY_EXPORT_PATH "cl_autoreplayupload_filepath"
+#define CVAR_REPLAY_EXPORT "cl_autoreplayupload_save"
+#define CVAR_UPLOAD_TO_CALCULATED "cl_autoreplayupload_calculated"
+#define CVAR_UPLOAD_TO_BALLCHASING "cl_autoreplayupload_ballchasing"
+#define CVAR_REPLAY_NAME_TEMPLATE "cl_autoreplayupload_replaynametemplate"
+#define CVAR_REPLAY_SEQUENCE_NUM "cl_autoreplayupload_replaysequence"
+#define CVAR_PLUGIN_SHOW_NOTIFICATIONS "cl_autoreplayupload_notifications"
 
 string GetPlaylistName(int playlistId);
 
@@ -48,19 +41,7 @@ void AutoReplayUploaderPlugin::onLoad()
 	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
 	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
 
-	// Register for Game ending event
-	gameWrapper->HookEventWithCaller<ServerWrapper>(
-		"Function TAGame.GameEvent_Soccar_TA.EventMatchEnded",
-		bind(
-			&AutoReplayUploaderPlugin::OnGameComplete,
-			this,
-			placeholders::_1,
-			placeholders::_2,
-			placeholders::_3
-		)
-		);
-
-	InitPluginVariables();
+	InitializeVariables();
 
 	// Initialize notification plugin assets
 #ifdef TOAST
@@ -78,11 +59,56 @@ void AutoReplayUploaderPlugin::onUnload()
 	delete calculated;
 }
 
-void AutoReplayUploaderPlugin::InitPluginVariables()
+void AutoReplayUploaderPlugin::InitializeVariables()
 {
+	// What endpoints should we upload to?
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
+	
+	// Ball Chasing variables	
+	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false).bindTo(ballchasing->visibility);
+	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
+	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
+	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	{   
+		if (ballchasing->authKey->compare(oldVal) != 0)
+		{
+			// value changed so call auth
+			ballchasing->TestAuthKey();
+		}
+	});
+
+	// Replay Name template variables
+	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
+	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, DEFAULT_REPLAY_NAME_TEMPLATE, "Template for in game name of replay", true, true, 0, true, 0, true).bindTo(replayNameTemplate);
+	cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	{
+		bool changed = false;
+		string illegalChars = "\\/:*?\"<>|";
+		for (auto it = replayNameTemplate->begin(); it < replayNameTemplate->end(); ++it)
+		{
+			if (illegalChars.find(*it) != string::npos)
+			{
+				replayNameTemplate->erase(it);
+				changed = true;
+			}
+		}
+
+		if (replayNameTemplate->empty())
+		{
+			*replayNameTemplate = DEFAULT_REPLAY_NAME_TEMPLATE;
+			changed = true;
+		}
+
+		if (changed)
+		{
+			cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).setValue(*replayNameTemplate);
+		}
+	});
+
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, "./bakkesmod/data/", "Path to export replays to.").bindTo(exportPath);
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
 	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
 		bool changed = false;
@@ -102,7 +128,7 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 
 		if (exportPath->empty())
 		{
-			*exportPath = "./bakkesmod/data";
+			*exportPath = DEAULT_EXPORT_PATH;
 			changed = true;
 		}
 
@@ -112,29 +138,10 @@ void AutoReplayUploaderPlugin::InitPluginVariables()
 		}
 	});
 
-	// What endpoints should we upload to?
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
-	
-	// Ball Chasing variables
-	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
-	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(authKey);
-	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
-	{   
-		if (authKey->compare(oldVal) != 0)
-		{
-			// value changed so call auth
-			ballchasing->TestAuthKey(*authKey);
-		}
-	});
-	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false);
-
-	// Replay Name template variables
-	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, "", "Template for in game name of replay", true, true, 0, true, 0, true);
-	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
-
+#ifdef TOAST
 	// Notification variables
 	cvarManager->registerCvar(CVAR_PLUGIN_SHOW_NOTIFICATIONS, "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
+#endif
 }
 
 /**
@@ -173,12 +180,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		return;
 	}
 
-	auto replayNameTemplate = cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).getStringValue();
-
 	// If we have a template for the replay name then set the replay name based off that template else use default template
-	string replayPath = replayNameTemplate.empty() ? 
-		SetReplayNameAndExport(caller, soccarReplay, "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}") :
-		SetReplayNameAndExport(caller, soccarReplay, replayNameTemplate);
+	string replayPath = SetReplayNameAndExport(caller, soccarReplay, *replayNameTemplate);
 
 	// Upload replay
 	if (*uploadToCalculated)
@@ -187,9 +190,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 	if (*uploadToBallchasing)
 	{
-		string authKey = cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue();
-		string visibility = cvarManager->getCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY).getStringValue();
-		ballchasing->UploadReplay(replayPath, authKey, visibility);
+		ballchasing->UploadReplay(replayPath);
 	}
 	if ((*saveReplay) == false)
 	{
@@ -313,14 +314,6 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	}
 
 	return replayPath;
-}
-
-/**
-* Tests the authorization key for Ballchasing.com
-*/
-void AutoReplayUploaderPlugin::TestBallchasingAuth(std::vector<std::string> params)
-{
-	ballchasing->TestAuthKey(cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).getStringValue());
 }
 
 #pragma endregion
