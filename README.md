@@ -15,15 +15,15 @@ BakkesMod plugin that automatically uploads Rocket League replays to other servi
 
 ## Settings available in BakesMod Settings Console
 
-Enable automatic replay uploading to calculated.gg
-Enable automatic replay uploading to ballchasing.com
+Upload to Calculated - Enable automatic replay uploading to calculated.gg
+Upload to Balchasing - Enable automatic replay uploading to ballchasing.com
 
-Replay visibility on ballchasing.com possible values include:
+Replay visibility - Sets the replay visiblity on ballchasing.com when it uploads a replay. Possible values include:
 * public
 * private
 * unlisted
 
-Ballchasing auth key is an authentication key required by ballchasing.com to autoupload replays. Get one at https://ballchasing.com/upload
+Ballchasing auth key - an authentication key required by ballchasing.com to autoupload replays. Get one at https://ballchasing.com/upload
 
 Replay Name Template - A templatized string to name your replays.  Possible token's that will be replaced are:
 * {PLAYER} - Name of current player
@@ -38,8 +38,8 @@ Replay Name Template - A templatized string to name your replays.  Possible toke
 * {WINLOSS} - Win or Loss depending on if the player won or lost
 * Default = {YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}
 
-Replay Name Sequence Number used to give uniqueness to games in a session or series. Usually you want this to start at 1 and it will auto increment from there every time it saves a replay.
+Replay Sequence Number - Value use in the {NUM} token in the replay name template above.  Used to give uniqueness to games in a session or series. Usually you want this to start at 1 and it will auto increment from there every time it saves a replay.
 
-Save all replay files to export path
+Save Replays - Enable exporting all replay files to ExportPath setting
 
-ExportPath is the path the plugin will save replays to
+ExportPath - The path the plugin will save replays to
