@@ -13,15 +13,16 @@ void SetVariable(void* object, string name, string value)
 
 int main()
 {
+	string replayFile = "C:/Program Files (x86)/Steam/steamapps/common/rocketleague/Binaries/Win32/bakkesmod/data/autoupload.replay";
+
 	Calculated* calculated = new Calculated("consoleuploader", "----boundary", &Log, NULL);
 	Ballchasing* ballchasing = new Ballchasing("consoleuploader", "----boundary", &Log, &SetVariable, NULL);
 
-	*(ballchasing->authKey) = "6CWzkHqkuUi3ESOHBnupMGLohIvDd1akLFMfxlyP";
+	*(ballchasing->authKey) = "";
 	*(ballchasing->visibility) = "public";
 
-	//ballchasing->UploadReplay("C:/Users/Tyler/OneDrive/RL-Replays/2019-05-21-17-45.replay");
-
-	calculated->UploadReplay("C:/Users/Tyler/OneDrive/RL-Replays/2019-05-21-17-45.replay");
+	ballchasing->UploadReplay(replayFile);
+	calculated->UploadReplay(replayFile);
 
 	system("PAUSE");
 }

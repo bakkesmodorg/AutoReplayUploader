@@ -342,12 +342,7 @@ vector<uint8_t> GetFileBytes(string filename)
 
 string GetFileName(const string& s)
 {
-
 	char sep = '/';
-
-#ifdef _WIN32
-	sep = '\\';
-#endif
 
 	size_t i = s.rfind(sep, s.length());
 	if (i != string::npos)
