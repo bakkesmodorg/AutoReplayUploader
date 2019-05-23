@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <wininet.h>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -37,7 +38,9 @@ struct HttpRequestObject {
 	void(*RequestComplete)(HttpRequestObject*);
 };
 
-bool HttpRequestAsync(HttpRequestObject* object);
+void HttpRequestAsync(HttpRequestObject* object);
+void HttpFileUploadAsync(string server, string path, string userAgent, string filepath, string paramName, string additionalHeaders, string uploadBoundary, int requestId, void* requester, void(*RequestComplete)(HttpRequestObject*));
+string AppendGetParams(string baseUrl, map<string, string> getParams);
 
 struct SContext
 {

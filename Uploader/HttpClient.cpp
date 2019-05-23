@@ -1,6 +1,9 @@
 #include "HttpClient.h"
 
 #include <thread>
+#include <sstream>
+#include <fstream>
+#include <vector>
 
 HttpClient::HttpClient(void)
 {
@@ -305,9 +308,126 @@ DWORD WINAPI HttpPostThread(void* data) {
 	return 0;
 }
 
-bool HttpRequestAsync(HttpRequestObject* request)
+void HttpRequestAsync(HttpRequestObject* request)
 {
 	std::thread http(HttpPostThread, (void*)request);
 	http.detach();
-	return true;
+}
+
+vector<uint8_t> GetFileBytes(string filename)
+{
+	// open the file
+	std::streampos fileSize;
+	std::ifstream file(filename, ios::binary);
+
+	// get its size
+	file.seekg(0, ios::end);
+	fileSize = file.tellg();
+
+	if (fileSize <= 0) // in case the file does not exist for some reason
+	{
+		fileSize = 0;
+	}
+
+	// initialize byte vector to size of replay
+	vector<uint8_t> fileData(fileSize);
+
+	// read replay file from the beginning
+	file.seekg(0, ios::beg);
+	file.read((char*)&fileData[0], fileSize);
+	file.close();
+
+	return fileData;
+}
+
+string GetFileName(const string& s)
+{
+	char sep = '/';
+
+	size_t i = s.rfind(sep, s.length());
+	if (i != string::npos)
+	{
+		return(s.substr(i + 1, s.length() - i));
+	}
+
+	return("");
+}
+
+string AppendGetParams(string baseUrl, map<string, string> getParams)
+{
+	std::stringstream urlStream;
+	urlStream << baseUrl;
+	if (!getParams.empty())
+	{
+		urlStream << "?";
+
+		for (auto it = getParams.begin(); it != getParams.end(); it++)
+		{
+			if (it != getParams.begin())
+				urlStream << "&";
+			urlStream << (*it).first << "=" << (*it).second;
+		}
+	}
+	return urlStream.str();
+}
+
+char* CopyToCharPtr(vector<uint8_t>& vector)
+{
+	char *reqData = new char[vector.size() + 1];
+	for (int i = 0; i < vector.size(); i++)
+		reqData[i] = vector[i];
+	reqData[vector.size()] = '\0';
+	return reqData;
+}
+
+void HttpFileUploadAsync(string server, string path, string userAgent, string filepath, string paramName, string additionalHeaders, string uploadBoundary, int requestId, void* requester, void(*RequestComplete)(HttpRequestObject*))
+{
+	string filename = GetFileName(filepath);
+
+	// Get Replay file bytes to upload
+	auto bytes = GetFileBytes(filepath);
+
+	// Construct headers
+	stringstream headers;
+	headers << "Content-Type: multipart/form-data;boundary=" << uploadBoundary;
+	if (!additionalHeaders.empty())
+		headers << "\r\n" << additionalHeaders;
+	auto header_str = headers.str();
+
+	// Construct body
+	stringstream body;
+	body << "--" << uploadBoundary << "\r\n";
+	body << "Content-Disposition: form-data; name=\"" << paramName << "\"; filename=\"" << filename << "\"" << "\r\n";
+	body << "Content-Type: application/form-data" << "\r\n";
+	body << "\r\n";
+	body << string(bytes.begin(), bytes.end());
+	body << "\r\n";
+	body << "--" << uploadBoundary << "--" << "\r\n";
+
+	// Convert body to vector of bytes instead of using str() which may have trouble with null termination chars
+	vector<uint8_t> buffer;
+	const string& str = body.str();
+	buffer.insert(buffer.end(), str.begin(), str.end());
+
+	// Copy vector to char* for upload
+	char *reqData = CopyToCharPtr(buffer);
+
+	// Setup Http Request context
+	HttpRequestObject* ctx = new HttpRequestObject();
+	ctx->RequestId = requestId;
+	ctx->Requester = requester;
+	ctx->Headers = header_str;
+	ctx->Server = server;
+	ctx->Page = path;
+	ctx->Method = "POST";
+	ctx->UserAgent = userAgent;
+	ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
+	ctx->ReqData = reqData;
+	ctx->ReqDataSize = buffer.size();
+	ctx->RespData = new char[4096];
+	ctx->RespDataSize = 4096;
+	ctx->RequestComplete = RequestComplete;
+	ctx->Flags = INTERNET_FLAG_SECURE;
+
+	HttpRequestAsync(ctx);
 }

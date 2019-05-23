@@ -1,9 +1,6 @@
 #pragma once
 
 #include "HttpClient.h"
-
-#include "bakkesmod/plugin/bakkesmodplugin.h"
-
 #include <iostream>
 
 using namespace std;
@@ -12,11 +9,12 @@ class Calculated
 {
 private:
 	string UserAgent;
-	string UploadBoundary;
-	shared_ptr<CVarManagerWrapper> cvarManager = NULL;
+	string uploadBoundary;
+	void(*Log)(void* object, string message);
+	void* Client;
 
 public:
-	Calculated(string userAgent, string uploadBoundary, shared_ptr<CVarManagerWrapper> cvarManager);
+	Calculated(string userAgent, string uploadBoundary, void(*log)(void* object, string message), void* client);
 	~Calculated();
 
 	void UploadReplay(string replayPath);
