@@ -305,9 +305,8 @@ DWORD WINAPI HttpPostThread(void* data) {
 	return 0;
 }
 
-bool HttpRequestAsync(HttpRequestObject* request)
+void HttpRequestAsync(HttpRequestObject* request)
 {
 	std::thread http(HttpPostThread, (void*)request);
 	http.detach();
-	return true;
 }

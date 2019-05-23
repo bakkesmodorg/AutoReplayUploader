@@ -43,6 +43,18 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	InitializeVariables();
 
+	// Register for Game ending event	
+	gameWrapper->HookEventWithCaller<ServerWrapper>(
+		"Function TAGame.GameEvent_Soccar_TA.EventMatchEnded",
+		bind(
+			&AutoReplayUploaderPlugin::OnGameComplete,
+			this,
+			placeholders::_1,
+			placeholders::_2,
+			placeholders::_3
+		)
+	);
+
 	// Initialize notification plugin assets
 #ifdef TOAST
 	gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
@@ -73,7 +85,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	{   
 		if (ballchasing->authKey->compare(oldVal) != 0)
 		{
-			// value changed so call auth
+			// value changed so test auth key
 			ballchasing->TestAuthKey();
 		}
 	});
@@ -83,24 +95,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, DEFAULT_REPLAY_NAME_TEMPLATE, "Template for in game name of replay", true, true, 0, true, 0, true).bindTo(replayNameTemplate);
 	cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
-		bool changed = false;
-		string illegalChars = "\\/:*?\"<>|";
-		for (auto it = replayNameTemplate->begin(); it < replayNameTemplate->end(); ++it)
-		{
-			if (illegalChars.find(*it) != string::npos)
-			{
-				replayNameTemplate->erase(it);
-				changed = true;
-			}
-		}
-
-		if (replayNameTemplate->empty())
-		{
-			*replayNameTemplate = DEFAULT_REPLAY_NAME_TEMPLATE;
-			changed = true;
-		}
-
-		if (changed)
+		if (SanitizeReplayNameTemplate(replayNameTemplate, DEFAULT_REPLAY_NAME_TEMPLATE))
 		{
 			cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).setValue(*replayNameTemplate);
 		}
@@ -111,28 +106,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
 	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
-		bool changed = false;
-
-		size_t found = exportPath->find("\\");
-		if (found != string::npos)
-		{
-			replace(exportPath->begin(), exportPath->end(), '\\', '/'); // replace all '\' to '/'
-			changed = true;
-		}
-
-		if (exportPath->back() == '/')
-		{
-			exportPath->pop_back();
-			changed = true;
-		}
-
-		if (exportPath->empty())
-		{
-			*exportPath = DEAULT_EXPORT_PATH;
-			changed = true;
-		}
-
-		if (changed)
+		if (SanitizeExportPath(exportPath, DEAULT_EXPORT_PATH))
 		{
 			cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).setValue(*exportPath);
 		}
@@ -292,7 +266,7 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 
 	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
 	stringstream path;
-	path << exportPath << string("/") << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
+	path << *exportPath << string("/") << replayName << " " << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
 	string replayPath = path.str();
 	if (file_exists(replayPath))
 	{
@@ -308,7 +282,7 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	if (!file_exists(replayPath))
 	{
 		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path instead");
-		replayPath = "./bakkesmod/data/autosaved.replay";
+		replayPath = string(DEAULT_EXPORT_PATH) + "/autosaved.replay";
 		soccarReplay.ExportReplay(replayPath);
 		cvarManager->log("Exported replay to: " + replayPath);
 	}

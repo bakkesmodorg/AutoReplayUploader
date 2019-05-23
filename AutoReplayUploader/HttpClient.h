@@ -37,7 +37,7 @@ struct HttpRequestObject {
 	void(*RequestComplete)(HttpRequestObject*);
 };
 
-bool HttpRequestAsync(HttpRequestObject* object);
+void HttpRequestAsync(HttpRequestObject* object);
 
 struct SContext
 {
