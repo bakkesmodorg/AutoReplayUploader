@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <vector>
 
 using namespace std;
 
@@ -22,20 +23,41 @@ bool ReplaceAll(string& str, const string& from, const string& to) {
 	return replaced;
 }
 
-bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string defaultValue)
+bool RemoveChars(shared_ptr<string> str, vector<char> charsToRemove, bool changed)
 {
-	bool changed = false;
-
-	// Remove illegal characters for filename
-	string illegalChars = "\\/:*?\"<>|";
-	for (auto it = replayNameTemplate->begin(); it < replayNameTemplate->end(); ++it)
+	// Remove illegal characters for a folder path
+	string output;
+	output.reserve(str->size());
+	for (size_t i = 0; i < str->size(); ++i)
 	{
-		if (illegalChars.find(*it) != string::npos)
+		char c = (*str)[i];
+		bool found = false;
+		for (int j = 0; j < charsToRemove.size(); j++)
 		{
-			replayNameTemplate->erase(it);
+			if (c == charsToRemove[j])
+			{
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			output += c;
+		}
+		else
+		{
 			changed = true;
 		}
 	}
+	*str = output;
+	return changed;
+}
+
+bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string defaultValue)
+{
+	// Remove illegal characters for filename
+	vector<char> illegalChars{ '\\', '/', ':', '*', '?', '\"', '<', '>', '|' };
+	bool changed = RemoveChars(replayNameTemplate, illegalChars, false);
 
 	// If empty use default
 	if (replayNameTemplate->empty())
@@ -49,7 +71,17 @@ bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string de
 
 bool SanitizeExportPath(shared_ptr<string> exportPath, string defaultValue)
 {
-	bool changed = false;
+	// If empty use default and return OR after any below operation we return if empty
+	if (exportPath->empty())
+	{
+		*exportPath = defaultValue;
+		return true;
+	}
+
+	// Remove illegal characters for folder path
+	vector<char> illegalChars{ '*', '?', '\"', '<', '>', '|' };
+	bool changed = RemoveChars(exportPath, illegalChars, false);
+	if (exportPath->empty()) { *exportPath = defaultValue;  return true; }
 
 	// Replaces \ with /
 	size_t found = exportPath->find("\\");
@@ -60,28 +92,11 @@ bool SanitizeExportPath(shared_ptr<string> exportPath, string defaultValue)
 	}
 
 	// Remove trailing slash
-	if (exportPath->back() == '/')
+	if ((*exportPath)[exportPath->size() - 1] == '/')
 	{
 		exportPath->pop_back();
 		changed = true;
-	}
-	
-	// Remove illegal characters for a folder path
-	string illegalChars = "*?\"<>|";
-	for (auto it = exportPath->begin(); it < exportPath->end(); ++it)
-	{
-		if (illegalChars.find(*it) != string::npos)
-		{
-			exportPath->erase(it);
-			changed = true;
-		}
-	}
-
-	// If empty use default
-	if (exportPath->empty())
-	{
-		*exportPath = defaultValue;
-		changed = true;
+		if (exportPath->empty()) { *exportPath = defaultValue;  return true; }
 	}
 
 	return changed;
