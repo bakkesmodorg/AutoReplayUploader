@@ -26,6 +26,18 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1",
 
 string GetPlaylistName(int playlistId);
 
+void Log(void* object, string message)
+{
+	auto plugin = (AutoReplayUploaderPlugin*)object;
+	plugin->cvarManager->log(message);
+}
+
+void SetVariable(void* object, string name, string value)
+{
+	auto plugin = (AutoReplayUploaderPlugin*)object;
+	plugin->cvarManager->getCvar(name).setValue(value);
+}
+
 #pragma region AutoReplayUploaderPlugin Implementation
 
 /**
@@ -38,8 +50,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	string userAgent = userAgentStream.str();
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
-	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", cvarManager);
+	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &SetVariable, this);
+	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, this);
 
 	InitializeVariables();
 

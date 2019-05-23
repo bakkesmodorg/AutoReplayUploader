@@ -1,9 +1,6 @@
 #pragma once
 
 #include "HttpClient.h"
-
-#include "bakkesmod/plugin/bakkesmodplugin.h"
-
 #include <iostream>
 
 using namespace std;
@@ -17,18 +14,19 @@ class Ballchasing
 private:
 	string UserAgent;
 	string uploadBoundary;
-	shared_ptr<CVarManagerWrapper> cvarManager = NULL;
 
 public:
-	Ballchasing(string userAgent, string uploadBoundary, shared_ptr<CVarManagerWrapper> cvarManager);
+	Ballchasing(string userAgent, string uploadBoundary, void(*Log)(void* object, string message), void(*SetVariable)(void* object, string name, string value), void* Client);
 	~Ballchasing();
 
 	shared_ptr<string> authKey = make_shared<string>("");
 	shared_ptr<string> visibility = make_shared<string>("public");
 
+	void(*Log)(void* object, string message);
+	void(*SetVariable)(void* object, string name, string value);
+	void* Client;
+
 	void UploadReplay(string replayPath);
-	void UploadCompleted(HttpRequestObject* ctx);
 	void TestAuthKey();
-	void TestAuthKeyResult(HttpRequestObject* ctx);
 };
 
