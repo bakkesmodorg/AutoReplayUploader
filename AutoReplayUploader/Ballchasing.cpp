@@ -36,7 +36,7 @@ void BallchasingRequestComplete(HttpRequestObject* ctx)
 void Ballchasing::TestAuthKeyResult(HttpRequestObject* ctx)
 {
 	string result = ctx->Status == 200 ? "Auth key correct!" : "Invalid auth key!";
-	cvarManager->getCvar("cl_autoreplayupload_ballchasing_testkeyresult").setValue(result);
+	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT).setValue(result);
 }
 
 void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
@@ -44,15 +44,15 @@ void Ballchasing::UploadCompleted(HttpRequestObject* ctx)
 	cvarManager->log("Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
 }
 
-void Ballchasing::UploadReplay(string replayPath, string authKey, string visibility)
+void Ballchasing::UploadReplay(string replayPath)
 {
-	if (UserAgent.empty() || authKey.empty() || visibility.empty() || replayPath.empty())
+	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
 	{
 		cvarManager->log("Ballchasing::UploadReplay Parameters were empty.");
 		cvarManager->log("UserAgent: " + UserAgent);
 		cvarManager->log("ReplayPath: " + replayPath);
-		cvarManager->log("AuthKey: " + authKey);
-		cvarManager->log("Visibility: " + visibility);
+		cvarManager->log("AuthKey: " + *authKey);
+		cvarManager->log("Visibility: " + *visibility);
 		return;
 	}
 
@@ -61,7 +61,7 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 
 	// Construct headers
 	stringstream headers;
-	headers << "Authorization: " << authKey << "\r\n";
+	headers << "Authorization: " << *authKey << "\r\n";
 	headers << "Content-Type: multipart/form-data;boundary=" << uploadBoundary;
 	auto header_str = headers.str();
 
@@ -84,7 +84,7 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 	char *reqData = CopyToCharPtr(buffer);
 
 	// Append get parmeters to path
-	string path = AppendGetParams("api/upload", { {"visibility", visibility} });
+	string path = AppendGetParams("api/upload", { {"visibility", *visibility} });
 
 	// Setup Http Request context
 	HttpRequestObject* ctx = new HttpRequestObject();
@@ -110,11 +110,11 @@ void Ballchasing::UploadReplay(string replayPath, string authKey, string visibil
 /**
 * Tests the authorization key for Ballchasing.com
 */
-void Ballchasing::TestAuthKey(string authKey)
+void Ballchasing::TestAuthKey()
 {
 	// Construct headers
 	stringstream headers;
-	headers << "Authorization: " << authKey;
+	headers << "Authorization: " << *authKey;
 	auto header_str = headers.str();
 
 	HttpRequestObject* ctx = new HttpRequestObject();
