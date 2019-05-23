@@ -1,6 +1,11 @@
 #include "Utils.h"
 
+#include <iostream>
+#include <ctime>
+#include <sstream>
+
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
 
@@ -80,4 +85,56 @@ bool SanitizeExportPath(shared_ptr<string> exportPath, string defaultValue)
 	}
 
 	return changed;
+}
+
+string CalculateReplayPath(string& exportDir, string& replayName)
+{
+	auto t = time(nullptr);
+	auto tm = *localtime(&t);
+
+	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
+	stringstream path;
+	path << exportDir << string("/") << replayName << " " << put_time(&tm, "%Y-%m-%d-%H-%M") << ".replay";
+
+	return path.str();
+}
+
+string CalculateReplayName(string nameTemplate, string & mode, string & player, int teamIndex, int team0Score, int team1Score, bool & updatedNum, string num)
+{
+	// Get date string
+	auto t = time(0);
+	auto now = localtime(&t);
+
+	auto month = to_string(now->tm_mon + 1);
+	month.insert(month.begin(), 2 - month.length(), '0');
+
+	auto day = to_string(now->tm_mday);
+	day.insert(day.begin(), 2 - day.length(), '0');
+
+	auto year = to_string(now->tm_year + 1900);
+
+	auto hour = to_string(now->tm_hour);
+	hour.insert(hour.begin(), 2 - hour.length(), '0');
+
+	auto min = to_string(now->tm_min);
+	min.insert(min.begin(), 2 - min.length(), '0');
+
+	// Calculate Win/Loss string
+	auto won = teamIndex == 0 ? team0Score > team1Score : team1Score > team0Score;
+	auto winloss = won ? string("Win") : string("Loss");
+	auto wl = won ? string("W") : string("L");
+
+	ReplaceAll(nameTemplate, "{PLAYER}", player);
+	ReplaceAll(nameTemplate, "{MODE}", mode);
+	ReplaceAll(nameTemplate, "{YEAR}", year);
+	ReplaceAll(nameTemplate, "{MONTH}", month);
+	ReplaceAll(nameTemplate, "{DAY}", day);
+	ReplaceAll(nameTemplate, "{HOUR}", hour);
+	ReplaceAll(nameTemplate, "{MIN}", min);
+	ReplaceAll(nameTemplate, "{WINLOSS}", winloss);
+	ReplaceAll(nameTemplate, "{WL}", wl);
+
+	updatedNum = ReplaceAll(nameTemplate, "{NUM}", num);
+
+	return nameTemplate;
 }
