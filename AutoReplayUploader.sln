@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleUploader", "ConsoleU
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Uploader", "Uploader\Uploader.vcxproj", "{7C4C5DE3-8223-4BB5-99B3-DD2124C6015E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "UnitTests\UnitTests.vcxproj", "{0560EFD2-3FC5-4BE0-B710-108B528257C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -26,6 +28,14 @@ Global
 		{7C4C5DE3-8223-4BB5-99B3-DD2124C6015E}.Debug|x86.Build.0 = Debug|Win32
 		{7C4C5DE3-8223-4BB5-99B3-DD2124C6015E}.Release|x86.ActiveCfg = Release|Win32
 		{7C4C5DE3-8223-4BB5-99B3-DD2124C6015E}.Release|x86.Build.0 = Release|Win32
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Debug|x64.ActiveCfg = Debug|x64
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Debug|x64.Build.0 = Debug|x64
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Debug|x86.ActiveCfg = Debug|Win32
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Debug|x86.Build.0 = Debug|Win32
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Release|x64.ActiveCfg = Release|x64
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Release|x64.Build.0 = Release|x64
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Release|x86.ActiveCfg = Release|Win32
+		{0560EFD2-3FC5-4BE0-B710-108B528257C4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -167,7 +167,10 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 
 	// If we have a template for the replay name then set the replay name based off that template else use default template
-	string replayPath = SetReplayNameAndExport(caller, soccarReplay, *replayNameTemplate);
+	string replayName = SetReplayName(caller, soccarReplay);
+
+	// Export the replay to a file for upload
+	string replayPath = ExportReplay(soccarReplay, replayName);
 
 	// Upload replay
 	if (*uploadToCalculated)
@@ -178,6 +181,8 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	{
 		ballchasing->UploadReplay(replayPath);
 	}
+
+	// If we aren't saving the replay remove it after we've uploaded
 	if ((*saveReplay) == false)
 	{
 		cvarManager->log("Removing replay file: " + replayPath);
@@ -202,8 +207,9 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 *		{WL} - W or L depending on if the player won or lost
 *		{WINLOSS} - Win or Loss depending on if the player won or lost
 */
-string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string replayName)
+string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay)
 {
+	string replayName = *replayNameTemplate;
 	cvarManager->log("Using replay name template: " + replayName);
 
 	// Get Gamemode game was in
@@ -213,59 +219,26 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	// Get current Sequence number
 	auto seq = to_string(*templateSequence);
 
-	// Get date string
-	auto t = time(0);
-	auto now = localtime(&t);
-
-	auto month = to_string(now->tm_mon + 1);
-	month.insert(month.begin(), 2 - month.length(), '0');
-
-	auto day = to_string(now->tm_mday);
-	day.insert(day.begin(), 2 - day.length(), '0');
-
-	auto year = to_string(now->tm_year + 1900);
-
-	auto hour = to_string(now->tm_hour);
-	hour.insert(hour.begin(), 2 - hour.length(), '0');
-
-	auto min = to_string(now->tm_min);
-	min.insert(min.begin(), 2 - min.length(), '0');
-
 	// Get local primary player name
 	auto name = server.GetLocalPrimaryPlayer().GetPRI().GetPlayerName().ToString();
 
-	// Calculate Win/Loss string
-	auto team = server.GetGameWinner();
+	// Get players team
 	auto team_index = (unsigned int)server.GetLocalPrimaryPlayer().GetPRI().GetTeamNum();
-
 	cvarManager->log("TeamIndex: " + to_string(team_index));
 
+	// Get Player scores
 	auto team0Score = soccarReplay.GetTeam0Score();
 	auto team1Score = soccarReplay.GetTeam1Score();
-
 	cvarManager->log("Team 0 Score: " + to_string(team0Score));
 	cvarManager->log("Team 1 Score: " + to_string(team1Score));
+	
+	cvarManager->log("{PLAYER}: " + name);
+	cvarManager->log("{MODE}: " + mode);
+	cvarManager->log("{NUM}: " + seq);
+	
+	bool replaced = false;
 
-	auto won = team_index == 0 ? soccarReplay.GetTeam0Score() > soccarReplay.GetTeam1Score() : soccarReplay.GetTeam1Score() > soccarReplay.GetTeam0Score();
-	auto winloss = won ? string("Win") : string("Loss");
-	auto wl = won ? string("W") : string("L");
-
-	cvarManager->log("Username: " + name);
-	cvarManager->log("Mode: " + mode);
-	cvarManager->log("Sequence: " + seq);
-	cvarManager->log("Date: " + year + "-" + month + "-" + day + " " + hour + ":" + min);
-	cvarManager->log("WinLoss: " + winloss);
-
-	ReplaceAll(replayName, "{PLAYER}", name);
-	ReplaceAll(replayName, "{MODE}", mode);
-	ReplaceAll(replayName, "{YEAR}", year);
-	ReplaceAll(replayName, "{MONTH}", month);
-	ReplaceAll(replayName, "{DAY}", day);
-	ReplaceAll(replayName, "{HOUR}", hour);
-	ReplaceAll(replayName, "{MIN}", min);
-	ReplaceAll(replayName, "{WINLOSS}", winloss);
-	ReplaceAll(replayName, "{WL}", wl);
-	bool replaced = ReplaceAll(replayName, "{NUM}", seq);
+	replayName = CalculateReplayName(replayName, mode, name, team_index, team0Score, team1Score, replaced, seq);
 
 	if (replaced) // only increment sequence number if it was used
 	{
@@ -276,10 +249,14 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	cvarManager->log("ReplayName: " + replayName);
 	soccarReplay.SetReplayName(replayName);
 
-	// Use year-month-day-hour-min.replay for the replay filepath ex: 2019-05-21-14-21.replay
-	stringstream path;
-	path << *exportPath << string("/") << replayName << " " << year << "-" << month << "-" << day << "-" << hour << "-" << min << ".replay";
-	string replayPath = path.str();
+	return replayName;
+}
+
+string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
+{
+	string replayPath = CalculateReplayPath(*exportPath, replayName);
+
+	// Remove file if it already exists
 	if (file_exists(replayPath))
 	{
 		cvarManager->log("Removing duplicate replay file: " + replayPath);
@@ -293,8 +270,9 @@ string AutoReplayUploaderPlugin::SetReplayNameAndExport(ServerWrapper& server, R
 	// Check to see if replay exists, if not then export to default path
 	if (!file_exists(replayPath))
 	{
-		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path instead");
+		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path.");
 		replayPath = string(DEAULT_EXPORT_PATH) + "/autosaved.replay";
+
 		soccarReplay.ExportReplay(replayPath);
 		cvarManager->log("Exported replay to: " + replayPath);
 	}

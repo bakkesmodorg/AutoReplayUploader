@@ -43,8 +43,8 @@ private:
 	// Initializes all variables from bakkes mod settings menu
 	void InitializeVariables();
 
-	// Sets the name in the replay file and exports the replay
-	string SetReplayNameAndExport(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay, string templateString);
+	string SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay);
+	string ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName);
 
 public:
 	virtual void onLoad();
