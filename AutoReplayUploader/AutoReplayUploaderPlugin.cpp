@@ -238,7 +238,7 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 	
 	bool replaced = false;
 
-	CalculateReplayName(replayName, mode, name, team_index, team0Score, team1Score, replaced, seq);
+	replayName = CalculateReplayName(replayName, mode, name, team_index, team0Score, team1Score, replaced, seq);
 
 	if (replaced) // only increment sequence number if it was used
 	{
