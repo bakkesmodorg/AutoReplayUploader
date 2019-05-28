@@ -15,7 +15,7 @@ using namespace std;
 #define DEFAULT_REPLAY_NAME_TEMPLATE "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}"
 
 // TODO: uncomment or remove #ifdef's when new Bakkes mod API becomes available that has Toast notifications
-// #define TOAST
+#define TOAST
 
 class AutoReplayUploaderPlugin : public BakkesMod::Plugin::BakkesModPlugin
 {
@@ -36,10 +36,6 @@ private:
 	shared_ptr<bool> saveReplay = make_shared<bool>(false);
 	shared_ptr<string> exportPath = make_shared<string>(DEAULT_EXPORT_PATH);
 
-#ifdef TOAST
-	shared_ptr<bool> showNotifications = make_shared<bool>(true);
-#endif
-
 	// Initializes all variables from bakkes mod settings menu
 	void InitializeVariables();
 
@@ -51,4 +47,8 @@ public:
 	virtual void onUnload();
 	
 	void OnGameComplete(ServerWrapper caller, void* params, string eventName);
+
+#ifdef TOAST
+	shared_ptr<bool> showNotifications = make_shared<bool>(true);
+#endif
 };

@@ -13,7 +13,7 @@
 
 using namespace std;
 
-BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0)
+BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0);
 
 // Constant CVAR variable names
 #define CVAR_REPLAY_EXPORT_PATH "cl_autoreplayupload_filepath"
@@ -23,6 +23,9 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1",
 #define CVAR_REPLAY_NAME_TEMPLATE "cl_autoreplayupload_replaynametemplate"
 #define CVAR_REPLAY_SEQUENCE_NUM "cl_autoreplayupload_replaysequence"
 #define CVAR_PLUGIN_SHOW_NOTIFICATIONS "cl_autoreplayupload_notifications"
+#define CVAR_BALLCHASING_AUTH_KEY "cl_autoreplayupload_ballchasing_authkey"
+#define CVAR_BALLCHASING_AUTH_TEST_RESULT "cl_autoreplayupload_ballchasing_testkeyresult"
+#define CVAR_BALLCHASING_REPLAY_VISIBILITY "cl_autoreplayupload_ballchasing_visibility"
 
 string GetPlaylistName(int playlistId);
 
@@ -32,10 +35,42 @@ void Log(void* object, string message)
 	plugin->cvarManager->log(message);
 }
 
-void SetVariable(void* object, string name, string value)
+void UploadComplete(AutoReplayUploaderPlugin* plugin, bool result, string endpoint)
+{
+#ifdef TOAST
+	if (*(plugin->showNotifications)) {
+		std::string message = "Uploaded replay to " + endpoint + " successfully!";
+		std::string logo_to_use = endpoint + "_logo";
+		uint8_t toastType = ToastType_OK;
+		if (!result)
+		{
+			message = "Unable to upload replay to " + endpoint + ".";
+			toastType = ToastType_Error;
+		}
+		if (endpoint.find("."))
+		{
+			logo_to_use = endpoint.substr(0, endpoint.find(".") - 1) + "_logo";
+		}
+		plugin->gameWrapper->Toast("Autoreplayuploader", message, logo_to_use, 3.5f, toastType);
+	}
+#endif
+}
+
+void CalculatedUploadComplete(void* object, bool result)
+{
+	UploadComplete((AutoReplayUploaderPlugin*)object, result, "calculated");
+}
+
+void BallchasingUploadComplete(void* object, bool result)
+{
+	UploadComplete((AutoReplayUploaderPlugin*)object, result, "ballchasing");
+}
+
+void BallchasingAuthTestComplete(void* object, bool result)
 {
 	auto plugin = (AutoReplayUploaderPlugin*)object;
-	plugin->cvarManager->getCvar(name).setValue(value);
+	string msg = result ? "Auth key correct!" : "Invalid auth key!";
+	plugin->cvarManager->getCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT).setValue(msg);
 }
 
 #pragma region AutoReplayUploaderPlugin Implementation
@@ -50,8 +85,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	string userAgent = userAgentStream.str();
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &SetVariable, this);
-	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, this);
+	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
+	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &CalculatedUploadComplete, this);
 
 	InitializeVariables();
 
@@ -149,9 +184,6 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (replayDirector.IsNull())
 	{
 		cvarManager->log("Could not upload replay, director is NULL!");
-#ifdef TOAST
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (1)", "default", 3.5f, ToastType_Error);
-#endif
 		return;
 	}
 
@@ -160,9 +192,6 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (soccarReplay.memory_address == NULL)
 	{
 		cvarManager->log("Could not upload replay, replay is NULL!");
-#ifdef TOAST
-		if (*showNotifications) gameWrapper->Toast("Autoreplayuploader", "Error exporting replay! (2)", "default", 3.5f, ToastType_Error);
-#endif
 		return;
 	}
 
@@ -188,6 +217,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		cvarManager->log("Removing replay file: " + replayPath);
 		remove(replayPath.c_str());
 	}
+#ifdef TOAST
+	else if(*showNotifications)
+	{
+		bool exported = file_exists(replayPath);
+		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
+		gameWrapper->Toast("Autoreplayuploader", msg, "deafult", 3.5f, exported ? ToastType_OK : ToastType_Error);
+	}
+#endif
 }
 
 /**

@@ -1,23 +1,28 @@
 #include "Ballchasing.h"
+
+#include "HttpClient.h"
 #include <sstream>
 
 using namespace std;
 
-Ballchasing::Ballchasing(string userAgent, string uploadBoundary, void(*Log)(void* object, string message), void(*SetVariable)(void* object, string name, string value), void* Client)
+Ballchasing::Ballchasing(string userAgent, string uploadBoundary, void(*Log)(void *object, string message), void(*NotifyUploadResult)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client)
 {
 	this->UserAgent = userAgent;
 	this->uploadBoundary = uploadBoundary;
 	this->Log = Log;
-	this->SetVariable = SetVariable;
+	this->NotifyUploadResult = NotifyUploadResult;
+	this->NotifyAuthResult = NotifyAuthResult;
 	this->Client = Client;
 }
 
 void BallchasingRequestComplete(HttpRequestObject* ctx)
 {
+	auto ballchasing = (Ballchasing*)ctx->Requester;
+
 	if (ctx->RequestId == 1)
 	{
-		auto ballchasing = (Ballchasing*)ctx->Requester;
 		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
+		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
 		
 		delete[] ctx->ReqData;
 		delete[] ctx->RespData;
@@ -25,9 +30,8 @@ void BallchasingRequestComplete(HttpRequestObject* ctx)
 	}
 	else if(ctx->RequestId == 2)
 	{
-		auto ballchasing = (Ballchasing*)ctx->Requester;
-		string result = ctx->Status == 200 ? "Auth key correct!" : "Invalid auth key!";
-		ballchasing->SetVariable(ballchasing->Client, CVAR_BALLCHASING_AUTH_TEST_RESULT, result);
+		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + to_string(ctx->Status));
+		ballchasing->NotifyAuthResult(ballchasing->Client, ctx->Status == 200);
 
 		delete[] ctx->RespData;
 		delete ctx;
