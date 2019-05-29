@@ -1,28 +1,28 @@
 #include "Calculated.h"
 
+#include "HttpClient.h"
+
 using namespace std;
 
-Calculated::Calculated(string userAgent, string uploadBoundary, void(*log)(void* object, string message), void* client)
+Calculated::Calculated(string userAgent, string uploadBoundary, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
 {
 	this->UserAgent = userAgent;
 	this->uploadBoundary = uploadBoundary;
 	this->Log = log;
+	this->NotifyUploadResult = NotifyUploadResult;
 	this->Client = client;
 }
 
 void CalculatedRequestComplete(HttpRequestObject* ctx)
 {
 	auto calculated = (Calculated*)ctx->Requester;
-	calculated->UploadCompleted(ctx);
+
+	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
+	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
 	delete[] ctx->ReqData;
 	delete[] ctx->RespData;
 	delete ctx;
-}
-
-void Calculated::UploadCompleted(HttpRequestObject * ctx)
-{
-	Log(Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
 }
 
 /**
