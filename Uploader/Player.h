@@ -21,5 +21,5 @@ public:
 	Player();
 	~Player();
 
-	bool WonMatch(int team1Score, int team2Score);
+	bool WonMatch(int team0Score, int team1Score);
 };
