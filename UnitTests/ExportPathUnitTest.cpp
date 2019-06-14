@@ -1,14 +1,14 @@
 #include "stdafx.h"
 #include "CppUnitTest.h"
 
-#include "Utils.h"
+#include "Replay.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 #define DEFAULT_EXPORT_PATH "./defaultPath"
 namespace UnitTests
 {		
-	TEST_CLASS(UtilsUnitTests)
+	TEST_CLASS(ExportPathUnitTests)
 	{
 	public:
 

@@ -10,6 +10,9 @@
 #include "Utils.h"
 #include "Ballchasing.h"
 #include "Calculated.h"
+#include "Match.h"
+#include "Player.h"
+#include "Replay.h"
 
 using namespace std;
 
@@ -130,7 +133,8 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
 	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{   
-		if (ballchasing->authKey->compare(oldVal) != 0)
+		if (ballchasing->authKey->size() > 0 &&         // We don't test the auth key if the size of the auth key is empty
+			ballchasing->authKey->compare(oldVal) != 0) // We don't test unless the value has changed
 		{
 			// value changed so test auth key
 			ballchasing->TestAuthKey();
@@ -227,6 +231,21 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 #endif
 }
 
+Player ConstructPlayer(PriWrapper wrapper)
+{
+	Player p;
+	p.Name = wrapper.GetPlayerName().ToString();
+	p.UniqueId = wrapper.GetUniqueId().ID;
+	p.Team = wrapper.GetTeamNum();
+	p.Score = wrapper.GetScore();
+	p.Goals = wrapper.GetMatchGoals();
+	p.Assists = wrapper.GetMatchAssists();
+	p.Saves = wrapper.GetMatchSaves();
+	p.Shots = wrapper.GetMatchShots();
+	p.Demos = wrapper.GetMatchDemolishes();
+	return p;
+}
+
 /**
 * SetReplayName - Called to set the name of the replay in the replay file.
 * Params:
@@ -249,37 +268,36 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 	string replayName = *replayNameTemplate;
 	cvarManager->log("Using replay name template: " + replayName);
 
+	Match match;
+
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
-	auto mode = GetPlaylistName(playlist.GetPlaylistId());
+	match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
+
+	// Get local primary player
+	match.PrimaryPlayer = ConstructPlayer(server.GetLocalPrimaryPlayer().GetPRI());
+
+	// Get all players
+	auto players = server.GetLocalPlayers();
+	for (int i = 0; i < players.Count(); i++)
+	{
+		match.Players.push_back(ConstructPlayer(players.Get(i).GetPRI()));
+	}
+
+	// Get Team scores
+	match.Team0Score = soccarReplay.GetTeam0Score();
+	match.Team1Score = soccarReplay.GetTeam1Score();
 
 	// Get current Sequence number
-	auto seq = to_string(*templateSequence);
+	auto seq = *templateSequence;
 
-	// Get local primary player name
-	auto name = server.GetLocalPrimaryPlayer().GetPRI().GetPlayerName().ToString();
+	replayName = ApplyNameTemplate(replayName, match, &seq);
 
-	// Get players team
-	auto team_index = (unsigned int)server.GetLocalPrimaryPlayer().GetPRI().GetTeamNum();
-	cvarManager->log("TeamIndex: " + to_string(team_index));
-
-	// Get Player scores
-	auto team0Score = soccarReplay.GetTeam0Score();
-	auto team1Score = soccarReplay.GetTeam1Score();
-	cvarManager->log("Team 0 Score: " + to_string(team0Score));
-	cvarManager->log("Team 1 Score: " + to_string(team1Score));
-	
-	cvarManager->log("{PLAYER}: " + name);
-	cvarManager->log("{MODE}: " + mode);
-	cvarManager->log("{NUM}: " + seq);
-	
-	bool replaced = false;
-
-	replayName = CalculateReplayName(replayName, mode, name, team_index, team0Score, team1Score, replaced, seq);
-
-	if (replaced) // only increment sequence number if it was used
+	// Did sequence number change if so update setting
+	if (seq != *templateSequence)
 	{
-		cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*templateSequence + 1);
+		*templateSequence = seq;
+		cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(seq);
 		cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
 	}
 

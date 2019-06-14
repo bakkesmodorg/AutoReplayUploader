@@ -15,7 +15,7 @@ using namespace std;
 #define DEFAULT_REPLAY_NAME_TEMPLATE "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}"
 
 // TODO: uncomment or remove #ifdef's when new Bakkes mod API becomes available that has Toast notifications
-#define TOAST
+//#define TOAST
 
 class AutoReplayUploaderPlugin : public BakkesMod::Plugin::BakkesModPlugin
 {
