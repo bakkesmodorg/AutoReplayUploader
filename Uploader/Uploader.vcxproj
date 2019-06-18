@@ -22,12 +22,18 @@
     <ClInclude Include="Ballchasing.h" />
     <ClInclude Include="Calculated.h" />
     <ClInclude Include="HttpClient.h" />
+    <ClInclude Include="Match.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Replay.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Ballchasing.cpp" />
     <ClCompile Include="Calculated.cpp" />
     <ClCompile Include="HttpClient.cpp" />
+    <ClCompile Include="Match.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Replay.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
