@@ -128,7 +128,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
 	
 	// Ball Chasing variables	
-	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, false).bindTo(ballchasing->visibility);
+	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
 	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
