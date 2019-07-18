@@ -5,8 +5,11 @@ Auto replay uploader
 6|Replay visibility|cl_autoreplayupload_ballchasing_visibility|public@public&private@private&unlisted@unlisted
 12|Ballchasing auth key|cl_autoreplayupload_ballchasing_authkey
 9|Ballchasing requires an authentication key to autoupload replays. Get one at https://ballchasing.com/upload
-0|Test auth key|cl_autoreplayupload_ballchasing_testkey
-7|
 9|Auth key status: $cl_autoreplayupload_ballchasing_testkeyresult$
 8|
+12|Replay Name Template|cl_autoreplayupload_replaynametemplate
+12|Replay Name Sequence Number|cl_autoreplayupload_replaysequence
+8|
+1|Save all replay files to export filepath below|cl_autoreplayupload_save
+12|Path to export replays to|cl_autoreplayupload_filepath
 9|Note: For this to work, you do NOT have to have "save all replays" enabled!
