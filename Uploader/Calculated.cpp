@@ -4,24 +4,21 @@
 
 using namespace std;
 
-Calculated::Calculated(string userAgent, string uploadBoundary, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
+Calculated::Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
 {
 	this->UserAgent = userAgent;
-	this->uploadBoundary = uploadBoundary;
 	this->Log = log;
 	this->NotifyUploadResult = NotifyUploadResult;
 	this->Client = client;
 }
 
-void CalculatedRequestComplete(HttpRequestObject* ctx)
+void CalculatedRequestComplete(PostFileRequest* ctx)
 {
 	auto calculated = (Calculated*)ctx->Requester;
 
 	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
-	delete[] ctx->ReqData;
-	delete[] ctx->RespData;
 	delete ctx;
 }
 
@@ -38,18 +35,15 @@ void Calculated::UploadReplay(string replayPath)
 		return;
 	}
 
-	// Fire new thread and make request, dont't wait for response
-	HttpFileUploadAsync(
-		"calculated.gg",
-		"api/upload",
-		UserAgent,
-		replayPath,
-		"replays",
-		"",
-		uploadBoundary,
-		1,
-		this,
-		&CalculatedRequestComplete);
+	PostFileRequest *request = new PostFileRequest();
+	request->Url = "https://calculated.gg/api/upload";
+	request->FilePath = replayPath;
+	request->ParamName = "replays";
+	request->RequestComplete = &CalculatedRequestComplete;
+	request->RequestId = 1;
+	request->Requester = this;
+
+	PostFileAsync(request);
 }
 
 Calculated::~Calculated()

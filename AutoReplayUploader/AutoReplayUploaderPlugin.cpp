@@ -88,8 +88,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	string userAgent = userAgentStream.str();
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
-	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &CalculatedUploadComplete, this);
+	ballchasing = new Ballchasing(userAgent, &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
+	calculated = new Calculated(userAgent, &Log, &CalculatedUploadComplete, this);
 
 	InitializeVariables();
 

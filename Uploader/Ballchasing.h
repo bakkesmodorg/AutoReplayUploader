@@ -11,7 +11,7 @@ private:
 	string uploadBoundary;
 
 public:
-	Ballchasing(string userAgent, string uploadBoundary, void(*Log)(void *object, string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
+	Ballchasing(string userAgent, void(*Log)(void *object, string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
 	~Ballchasing();
 
 	shared_ptr<string> authKey = make_shared<string>("");
