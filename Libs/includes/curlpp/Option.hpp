@@ -25,6 +25,7 @@
 #define CURLPP_OPTION_HPP
 
 
+#include "internal/buildconfig.h"
 #include "internal/OptionContainer.hpp"
 
 #include "OptionBase.hpp"
@@ -44,7 +45,7 @@ namespace curlpp
 	*/
 
         template<typename OT>
-	class Option : public curlpp::OptionBase
+	class CURLPPAPI Option : public curlpp::OptionBase
 	{
 
 	public:
@@ -142,7 +143,7 @@ namespace curlpp
 	*/
 
         template<typename OptionType, CURLoption opt>
-	class OptionTrait : public Option<OptionType>
+	class CURLPPAPI OptionTrait : public Option<OptionType>
 	{
 		
 		friend class Easy;
@@ -187,7 +188,7 @@ namespace curlpp
 	*/
 
 	template<CURLoption option>
-	class NoValueOptionTrait : public OptionTrait<bool, option>
+	class CURLPPAPI NoValueOptionTrait : public OptionTrait<bool, option>
 	{
 
 	public:
@@ -208,7 +209,7 @@ namespace curlpp
 	*/
 
 	template<typename OptionType>
-	class NotAvailableOptionTrait : public Option<OptionType>
+	class CURLPPAPI NotAvailableOptionTrait : public Option<OptionType>
 	{
 
 	public:
@@ -248,6 +249,9 @@ namespace curlpp
 namespace cURLpp = curlpp;
 
 
+#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
 #include "Option.inl"
+#endif
+
 
 #endif // #ifndef CURLPP_OPTION_HPP

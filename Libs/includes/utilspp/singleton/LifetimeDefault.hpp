@@ -1,9 +1,9 @@
 /*
- *    Copyright (c) <2002-2009> <Jean-Philippe Barrette-LaPierre>
+ *    Copyright (c) <2002-2005> <Jean-Philippe Barrette-LaPierre>
  *    
  *    Permission is hereby granted, free of charge, to any person obtaining
  *    a copy of this software and associated documentation files 
- *    (curlpp), to deal in the Software without restriction, 
+ *    (cURLpp), to deal in the Software without restriction, 
  *    including without limitation the rights to use, copy, modify, merge,
  *    publish, distribute, sublicense, and/or sell copies of the Software,
  *    and to permit persons to whom the Software is furnished to do so, 
@@ -21,28 +21,22 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef THREADING_FACTORY_MUTEX_HPP
-#define THREADING_FACTORY_MUTEX_HPP
+#ifndef LIFETIME_DEFAULT_HPP
+#define LIFETIME_DEFAULT_HPP
 
-//#include "curlpp/internal/buildconfig.h"
+#include <stdexcept>
+#include <cstdlib>
 
 namespace utilspp
 {
-   template <typename T>
-      struct ThreadingFactoryMutex
-      {
-         struct lock
-         {
-            lock();
-            lock(const T &);
-         };
-
-         typedef T VolatileType;
-      };
+   template< typename T >
+   class LifetimeDefault
+   {
+      public:
+         static void scheduleDestruction( T *obj, void (*func)() );
+         static void onDeadReference();
+   };
 }
 
-//#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
-	#include "utilspp/ThreadingFactoryMutex.inl"
-//#endif
 
 #endif

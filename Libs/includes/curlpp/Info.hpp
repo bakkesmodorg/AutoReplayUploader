@@ -26,6 +26,7 @@
 #define CURLPP_INFO_HPP
 
 
+#include "internal/buildconfig.h"
 
 #include "Easy.hpp"
 
@@ -41,7 +42,7 @@ namespace curlpp
 	*/
 
 	template<CURLINFO info, typename T>
-	struct Info 
+	struct CURLPPAPI Info 
 	{
 		static void get(const curlpp::Easy & handle, T & value);
 		static T get(const curlpp::Easy & handle);
@@ -54,7 +55,7 @@ namespace curlpp
 	*/
 
 	template<CURLINFO info, typename T>
-	struct NotAvailableInfo : Info<info, T>
+	struct CURLPPAPI NotAvailableInfo : Info<info, T>
 	{
 		static void get(const curlpp::Easy & handle, T & value);
 		static T get(const curlpp::Easy & handle);
@@ -69,7 +70,7 @@ namespace curlpp
 	*/
 
 	template<typename T>
-	struct InfoTypeConverter
+	struct CURLPPAPI InfoTypeConverter
 	{
 		static void get(const curlpp::Easy & handle, CURLINFO info, T & value);
 	}; 
@@ -104,7 +105,7 @@ namespace curlpp
 	* private data.
 	*/
 
-	struct InfoGetter
+	struct CURLPPAPI InfoGetter
 	{
 		template<typename T>
 		static void get(const curlpp::Easy & handle, CURLINFO info, T & value);
@@ -116,6 +117,9 @@ namespace curlpp
 namespace cURLpp = curlpp;
 
 
-#include "Info.inl"
+#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
+	#include "Info.inl"
+#endif
+
 
 #endif // #ifndef CURLPP_INFO_HPP

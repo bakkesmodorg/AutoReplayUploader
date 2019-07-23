@@ -25,6 +25,7 @@
 #define CURLPP_OPTION_BASE_HPP
 
 
+#include "internal/buildconfig.h"
 
 #include <curl/curl.h>
 
@@ -48,7 +49,7 @@ namespace internal
 	 * This is only used to be able to stock a list of options.
    */
 
-	class OptionBase
+	class CURLPPAPI OptionBase
   {
 
 	public:

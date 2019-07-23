@@ -24,6 +24,7 @@
 #ifndef CURLPP_OPTION_LIST_HPP
 #define CURLPP_OPTION_LIST_HPP
 
+#include "buildconfig.h"
 
 #include "../OptionBase.hpp"
 
@@ -43,7 +44,7 @@ namespace internal
 	* option set on a handle.
 	*/
 
-	class OptionList
+	class CURLPPAPI OptionList
 	{
 
 	public:

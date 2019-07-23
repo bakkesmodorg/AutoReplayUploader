@@ -21,73 +21,36 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CURLPP_SLIST_HPP
-#define CURLPP_SLIST_HPP
+#ifndef CREATION_STATIC_HPP
+#define CREATION_STATIC_HPP
 
-
-#include "buildconfig.h"
-
-#include <curl/curl.h>
-
-#include <list>
-#include <string>
-
-namespace curlpp
+/**
+ * This class is a creation policy for the utilspp::singleton_holder. The
+ * policy is creating the singleton by a static memory. The constructor is
+ * called the first time we call the utilspp::creation_static::create()
+ * function.
+ *
+ * This creation policy is very usefull since it rely on static allocation.
+ * It means that the creation is automatically thread-safe, since compilers
+ * static ensures that static allocation is thread-safe.
+ *
+ * Note don't use this class with a lifetime policy that allows revivals. 
+ * Be carefull with this policy since it won't respect the lifetime policy.
+ * It will eventually be destroyed, but at the end of the program. 
+ */
+namespace utilspp
 {
+   template<typename T>
+   class CreationStatic
+   {
+      public:
+         static T* create();
+         static void destroy(T* obj);
+   };
+}
 
+//#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
+	#include "CreationStatic.inl"
+//#endif
 
-namespace internal
-{
-
-
-	/**
-	* This class is binding the curl_slist struct.
-	*/
-
-	class CURLPPAPI SList
-	{
-
-	public:
-
-		SList();
-		SList(const SList & rhs);
-
-		/**
-		* The list passed in as an argument is now possessed by the class.
-		*/
-		SList(curl_slist * list);
-
-		explicit SList(const std::list<std::string> & list);
-		~SList();
-
-		SList & operator=(const std::list<std::string> & list);
-		operator std::list<std::string>();
-
-		curl_slist * cslist() const;
-		std::list<std::string> list();
-
-	private:
-
-		void set(const std::list<std::string> & list);
-		void update();
-		void clear();
-		void constructFrom(curl_slist * list);
-
-		curl_slist * mList;
-		std::list<std::string> mData;
-
-	};
-
-
-} // namespace internal
-
-
-} // namespace curlpp
-
-namespace cURLpp = curlpp;
-
-
-std::ostream CURLPPAPI & operator<<(std::ostream & stream, const std::list<std::string> & value);
-
-
-#endif // #ifndef CURLPP_SLIST_HPP
+#endif

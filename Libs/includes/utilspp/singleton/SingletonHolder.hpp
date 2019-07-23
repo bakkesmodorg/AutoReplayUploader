@@ -21,73 +21,48 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CURLPP_SLIST_HPP
-#define CURLPP_SLIST_HPP
+#ifndef SINGLETON_HOLDER_HPP
+#define SINGLETON_HOLDER_HPP
 
+#include <cassert>
 
-#include "buildconfig.h"
+#include "CreationUsingNew.hpp"
+#include "LifetimeDefault.hpp"
+#include "LifetimeWithLongevity.hpp"
+#include "../ThreadingSingle.hpp"
 
-#include <curl/curl.h>
-
-#include <list>
-#include <string>
-
-namespace curlpp
+namespace utilspp
 {
+  template
+  <class T,
+    template <class> class CreationPolicy = utilspp::CreationUsingNew,
+    template <class> class LifetimePolicy = utilspp::LifetimeDefault,
+    template <class> class ThreadingModel = utilspp::ThreadingSingle>
+  class SingletonHolder
+  {
+  public:
+    //the accessor method.
+    static T & instance();
+    static void makeInstance();
+    static void terminate();
+         
+  protected:
+    //protected to be sure that nobody may create one by himself.
+    SingletonHolder();
+         
+  private:
+    static void destroySingleton();
+         
+  private:
+    typedef typename ThreadingModel<T *>::VolatileType InstanceType;
+    static InstanceType mInstance;
+    static bool mDestroyed;
+  };
 
+}
 
-namespace internal
-{
+//#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
+	#include "SingletonHolder.inl"
+//#endif
 
-
-	/**
-	* This class is binding the curl_slist struct.
-	*/
-
-	class CURLPPAPI SList
-	{
-
-	public:
-
-		SList();
-		SList(const SList & rhs);
-
-		/**
-		* The list passed in as an argument is now possessed by the class.
-		*/
-		SList(curl_slist * list);
-
-		explicit SList(const std::list<std::string> & list);
-		~SList();
-
-		SList & operator=(const std::list<std::string> & list);
-		operator std::list<std::string>();
-
-		curl_slist * cslist() const;
-		std::list<std::string> list();
-
-	private:
-
-		void set(const std::list<std::string> & list);
-		void update();
-		void clear();
-		void constructFrom(curl_slist * list);
-
-		curl_slist * mList;
-		std::list<std::string> mData;
-
-	};
-
-
-} // namespace internal
-
-
-} // namespace curlpp
-
-namespace cURLpp = curlpp;
-
-
-std::ostream CURLPPAPI & operator<<(std::ostream & stream, const std::list<std::string> & value);
-
-
-#endif // #ifndef CURLPP_SLIST_HPP
+#endif

@@ -1,5 +1,5 @@
 /*
- *    Copyright (c) <2002-2009> <Jean-Philippe Barrette-LaPierre>
+ *    Copyright (c) <2002-2005> <Jean-Philippe Barrette-LaPierre>
  *    
  *    Permission is hereby granted, free of charge, to any person obtaining
  *    a copy of this software and associated documentation files 
@@ -21,73 +21,22 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CURLPP_SLIST_HPP
-#define CURLPP_SLIST_HPP
+#ifndef CREATION_USING_NEW_INL
+#define CREATION_USING_NEW_INL
 
-
-#include "buildconfig.h"
-
-#include <curl/curl.h>
-
-#include <list>
-#include <string>
-
-namespace curlpp
+template<typename T>
+T *
+utilspp::CreationUsingNew<T>::create()
 {
+   return new T;
+}
 
-
-namespace internal
+template<typename T>
+void
+utilspp::CreationUsingNew<T>::destroy(T * obj)
 {
+   delete obj;
+}
 
 
-	/**
-	* This class is binding the curl_slist struct.
-	*/
-
-	class CURLPPAPI SList
-	{
-
-	public:
-
-		SList();
-		SList(const SList & rhs);
-
-		/**
-		* The list passed in as an argument is now possessed by the class.
-		*/
-		SList(curl_slist * list);
-
-		explicit SList(const std::list<std::string> & list);
-		~SList();
-
-		SList & operator=(const std::list<std::string> & list);
-		operator std::list<std::string>();
-
-		curl_slist * cslist() const;
-		std::list<std::string> list();
-
-	private:
-
-		void set(const std::list<std::string> & list);
-		void update();
-		void clear();
-		void constructFrom(curl_slist * list);
-
-		curl_slist * mList;
-		std::list<std::string> mData;
-
-	};
-
-
-} // namespace internal
-
-
-} // namespace curlpp
-
-namespace cURLpp = curlpp;
-
-
-std::ostream CURLPPAPI & operator<<(std::ostream & stream, const std::list<std::string> & value);
-
-
-#endif // #ifndef CURLPP_SLIST_HPP
+#endif

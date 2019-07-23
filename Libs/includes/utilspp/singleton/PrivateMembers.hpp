@@ -21,28 +21,75 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef THREADING_FACTORY_MUTEX_HPP
-#define THREADING_FACTORY_MUTEX_HPP
+#ifndef PRIVATE_MEMBERS_HPP
+#define PRIVATE_MEMBERS_HPP
 
-//#include "curlpp/internal/buildconfig.h"
+#include <cassert>
 
 namespace utilspp
 {
-   template <typename T>
-      struct ThreadingFactoryMutex
-      {
-         struct lock
-         {
-            lock();
-            lock(const T &);
-         };
+  namespace PrivateMembers
+  {
+    /**
+     * Helper class for utils::setLongevity
+     */
+    class LifetimeTracker
+    {
+    public:
+      LifetimeTracker(unsigned int longevity);
+      virtual ~LifetimeTracker();
+      static bool compare( 
+			  const LifetimeTracker * l, 
+			  const LifetimeTracker * r
+			  );
 
-         typedef T VolatileType;
-      };
+    private:
+      unsigned int mLongevity;
+    };
+
+    typedef LifetimeTracker** TrackerArray;
+
+    extern TrackerArray mTrackerArray;
+    extern int mNbElements;
+
+    /**
+     * Helper class for Destroyer
+     */
+    template<typename T>
+    struct Deleter
+    {
+      void deleteObject(T * obj);
+    };
+
+    /**
+     * Concrete lifetime tracker for objects of type T
+     */
+    template<typename T, typename TDestroyer>
+    class ConcreteLifetimeTracker : public LifetimeTracker
+    {
+    public:
+      ConcreteLifetimeTracker(T * obj, unsigned int longevity, TDestroyer d);
+       
+      ~ConcreteLifetimeTracker();
+      
+    private:
+      T* mTracked;
+      TDestroyer mDestroyer;
+    };
+    
+    void atExitFunc();
+    
+    template <class T>
+    struct adapter
+    {
+      void operator()(T*);
+      void (* mFunc)();
+    };
+  }
 }
 
 //#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
-	#include "utilspp/ThreadingFactoryMutex.inl"
+	#include "PrivateMembers.inl"
 //#endif
 
 #endif

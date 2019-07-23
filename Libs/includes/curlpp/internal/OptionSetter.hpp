@@ -25,6 +25,7 @@
 #define CURLPP_OPTION_SETTER_HPP
 
 
+#include "buildconfig.h"
 #include "OptionContainerType.hpp"
 #include "CurlHandle.hpp"
 
@@ -44,7 +45,7 @@ namespace internal
 	*/
 
 	template<typename OptionValueType, CURLoption optionType>
-	class OptionSetter
+	class CURLPPAPI OptionSetter
 	{
 
 	public:
@@ -62,7 +63,7 @@ namespace internal
 	*/
 
 	template<CURLoption optionType>
-	class OptionSetter<std::string, optionType>
+	class CURLPPAPI OptionSetter<std::string, optionType>
 	{
 
 	public:
@@ -80,7 +81,7 @@ namespace internal
 	*/
 
 	template<CURLoption optionType>
-	class OptionSetter<std::list<std::string>, optionType>
+	class CURLPPAPI OptionSetter<std::list<std::string>, optionType>
 	{
 
 	public:
@@ -101,7 +102,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::Forms, CURLOPT_HTTPPOST>
+	class CURLPPAPI OptionSetter<curlpp::Forms, CURLOPT_HTTPPOST>
 	{
 
 	public:
@@ -122,7 +123,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::WriteFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::WriteFunctionFunctor,
 																CURLOPT_WRITEFUNCTION>
 	{
 
@@ -146,7 +147,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostWriteFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostWriteFunction,
 																CURLOPT_WRITEFUNCTION>
 	{
 
@@ -170,7 +171,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<FILE *,
+	class CURLPPAPI OptionSetter<FILE *,
 																CURLOPT_WRITEDATA>
 	{
 
@@ -192,7 +193,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<std::ostream *,
+	class CURLPPAPI OptionSetter<std::ostream *,
 																CURLOPT_WRITEDATA>
 	{
 
@@ -213,7 +214,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::ReadFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::ReadFunctionFunctor,
 																CURLOPT_READFUNCTION>
 	{
 
@@ -237,7 +238,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostReadFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostReadFunction,
 																CURLOPT_READFUNCTION>
 	{
 
@@ -261,7 +262,7 @@ namespace internal
 	*/
 
 	template <>
-	class OptionSetter<FILE *,
+	class CURLPPAPI OptionSetter<FILE *,
 																CURLOPT_READDATA>
 	{
 
@@ -283,7 +284,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<std::istream *,
+	class CURLPPAPI OptionSetter<std::istream *,
 																CURLOPT_READDATA>
 	{
 
@@ -305,7 +306,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::ProgressFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::ProgressFunctionFunctor,
 																CURLOPT_PROGRESSFUNCTION>
 	{
 
@@ -329,7 +330,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostProgressFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostProgressFunction,
 																CURLOPT_PROGRESSFUNCTION>
 	{
 
@@ -353,7 +354,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::WriteFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::WriteFunctionFunctor,
 																CURLOPT_HEADERFUNCTION>
 	
 	{
@@ -378,7 +379,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostWriteFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostWriteFunction,
 																CURLOPT_HEADERFUNCTION>
 	{
 
@@ -402,7 +403,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::DebugFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::DebugFunctionFunctor,
 																CURLOPT_DEBUGFUNCTION>
 	{
 
@@ -426,7 +427,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostDebugFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostDebugFunction,
 																CURLOPT_DEBUGFUNCTION>
 	{
 
@@ -450,7 +451,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::SslCtxFunctionFunctor,
+	class CURLPPAPI OptionSetter<curlpp::types::SslCtxFunctionFunctor,
 																CURLOPT_SSL_CTX_FUNCTION>
 	{
 
@@ -474,7 +475,7 @@ namespace internal
 	*/
 
 	template<>
-	class OptionSetter<curlpp::types::BoostSslCtxFunction,
+	class CURLPPAPI OptionSetter<curlpp::types::BoostSslCtxFunction,
 																CURLOPT_SSL_CTX_FUNCTION>
 	{
 
@@ -499,6 +500,10 @@ namespace internal
 
 namespace cURLpp = curlpp;
 
-#include "OptionSetter.inl"
+
+#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
+	#include "OptionSetter.inl"
+#endif
+
 
 #endif // #ifndef CURLPP_OPTION_SETTER_HPP

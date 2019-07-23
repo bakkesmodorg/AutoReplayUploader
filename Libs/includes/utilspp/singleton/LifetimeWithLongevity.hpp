@@ -21,73 +21,38 @@
  *    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CURLPP_SLIST_HPP
-#define CURLPP_SLIST_HPP
+#ifndef LIFETIME_WITH_LONGEVITY_HPP
+#define LIFETIME_WITH_LONGEVITY_HPP
 
+#include <cassert>
+#include <algorithm>
+#include "PrivateMembers.hpp"
 
-#include "buildconfig.h"
-
-#include <curl/curl.h>
-
-#include <list>
-#include <string>
-
-namespace curlpp
+namespace utilspp
 {
+   
+   template<typename T>
+   unsigned int getLongevity(T * p);
 
+   /**
+    * Assigns an object a longevity. Ensures ordered destructions of objects
+    * registered thusly during the exit sequence of the application.
+    */
+  template<typename T, typename TDestroyer>
+  void setLongevity(T * obj, 
+		    unsigned int longevity, 
+		    TDestroyer d = utilspp::PrivateMembers::Deleter<T>::deleteObject);
+  
+  template<typename T>
+  struct LifetimeWithLongevity
+  {
+    static void scheduleDestruction(T * obj, void (* func)());
+    static void onDeadReference();
+  };
+}
 
-namespace internal
-{
+//#ifdef CURLPP_INCLUDE_TEMPLATE_DEFINITIONS
+	#include "LifetimeWithLongevity.inl"
+//#endif
 
-
-	/**
-	* This class is binding the curl_slist struct.
-	*/
-
-	class CURLPPAPI SList
-	{
-
-	public:
-
-		SList();
-		SList(const SList & rhs);
-
-		/**
-		* The list passed in as an argument is now possessed by the class.
-		*/
-		SList(curl_slist * list);
-
-		explicit SList(const std::list<std::string> & list);
-		~SList();
-
-		SList & operator=(const std::list<std::string> & list);
-		operator std::list<std::string>();
-
-		curl_slist * cslist() const;
-		std::list<std::string> list();
-
-	private:
-
-		void set(const std::list<std::string> & list);
-		void update();
-		void clear();
-		void constructFrom(curl_slist * list);
-
-		curl_slist * mList;
-		std::list<std::string> mData;
-
-	};
-
-
-} // namespace internal
-
-
-} // namespace curlpp
-
-namespace cURLpp = curlpp;
-
-
-std::ostream CURLPPAPI & operator<<(std::ostream & stream, const std::list<std::string> & value);
-
-
-#endif // #ifndef CURLPP_SLIST_HPP
+#endif

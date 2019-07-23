@@ -25,6 +25,7 @@
 #define CURLPP_EXCEPTION_HPP
 
 
+#include "internal/buildconfig.h"
 
 #include <curl/curl.h>
 
@@ -44,7 +45,7 @@ namespace curlpp
 	* considerations, "unpredictable" by the library user.
 	*/
 
-	class RuntimeError : public std::runtime_error
+	class CURLPPAPI RuntimeError : public std::runtime_error
 	{
 	
 	public:
@@ -65,7 +66,7 @@ namespace curlpp
 	* that the library user is missusing the library.
 	*/
 
-	class LogicError : public std::logic_error
+	class CURLPPAPI LogicError : public std::logic_error
 	{
 
 	public:
@@ -85,7 +86,7 @@ namespace curlpp
 	* "unpredictable" by the library user.
 	*/
 
-	class LibcurlRuntimeError : public curlpp::RuntimeError
+	class CURLPPAPI LibcurlRuntimeError : public curlpp::RuntimeError
 	{
 
 	public:
@@ -113,7 +114,7 @@ namespace curlpp
 	* user is missusing the library.
 	*/
 
-	class LibcurlLogicError : public curlpp::LogicError
+	class CURLPPAPI LibcurlLogicError : public curlpp::LogicError
 	{
 
 	public:
@@ -143,8 +144,8 @@ namespace curlpp
 
 	public:
 
-		UnsetOption(const std::string & reason);
-		UnsetOption(const char * reason);
+		CURLPPAPI UnsetOption(const std::string & reason);
+		CURLPPAPI UnsetOption(const char * reason);
 
 	};
 
@@ -159,7 +160,7 @@ namespace curlpp
 
 	public:
 
-		NotAvailable();
+		CURLPPAPI NotAvailable();
 
 	};
 
@@ -174,7 +175,7 @@ namespace curlpp
 
 	public:
 
-		UnknowException();
+		CURLPPAPI UnknowException();
 
 	};
 
@@ -184,7 +185,7 @@ namespace curlpp
 	* It's used to throw exceptions within callbacks
 	*/
 
-	class CallbackExceptionBase : public curlpp::RuntimeError
+	class CURLPPAPI CallbackExceptionBase : public curlpp::RuntimeError
 	{
 
 	protected:
@@ -206,7 +207,7 @@ namespace curlpp
 	*/
 
 	template<typename ExceptionType>
-	class CallbackException : public CallbackExceptionBase
+	class CURLPPAPI CallbackException : public CallbackExceptionBase
 	{
 
 	public: 
@@ -261,8 +262,8 @@ namespace curlpp
 	* code, something we don't want in inline functions.
 	*/
 
-	void libcurlRuntimeAssert(const std::string & reason, CURLcode code);
-	void libcurlRuntimeAssert(const char * reason, CURLcode code);
+	void CURLPPAPI libcurlRuntimeAssert(const std::string & reason, CURLcode code);
+	void CURLPPAPI libcurlRuntimeAssert(const char * reason, CURLcode code);
 
 
 	/**
@@ -272,8 +273,8 @@ namespace curlpp
 	* code, something we don't want in inline functions.
 	*/
 
-	void libcurlLogicAssert(const std::string & reason, CURLcode code);
-	void libcurlLogicAssert(const char * reason, CURLcode code);
+	void CURLPPAPI libcurlLogicAssert(const std::string & reason, CURLcode code);
+	void CURLPPAPI libcurlLogicAssert(const char * reason, CURLcode code);
 
 
 	/**
@@ -283,8 +284,8 @@ namespace curlpp
 	* an inline function.
 	*/
 
-	void runtimeAssert(const std::string & reason, bool isOkay);
-	void runtimeAssert(const char * reason, bool isOkay);
+	void CURLPPAPI runtimeAssert(const std::string & reason, bool isOkay);
+	void CURLPPAPI runtimeAssert(const char * reason, bool isOkay);
 
 
 	/**
@@ -294,8 +295,8 @@ namespace curlpp
 	* want in an inline function.
 	*/
 
-	void logicAssert(const std::string & reason, bool isOkay);
-	void logicAssert(const char * reason, bool isOkay);
+	void CURLPPAPI logicAssert(const std::string & reason, bool isOkay);
+	void CURLPPAPI logicAssert(const char * reason, bool isOkay);
 
 
 } // namespace curlpp

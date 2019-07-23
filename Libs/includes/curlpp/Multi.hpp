@@ -37,7 +37,7 @@ namespace curlpp
 
 	class Easy;
 
-	class Multi
+	class CURLPPAPI Multi
 	{
 
 	public:
