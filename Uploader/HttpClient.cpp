@@ -16,6 +16,50 @@ HttpClient::HttpClient(void)
 	m_hRequest = NULL;
 }
 
+
+std::future<std::string> checkupdate(std::string const& url, std::string const& body) {
+	return std::async(std::launch::async,
+		[](std::string const& url, std::string const& body) mutable {
+		try
+		{
+
+			std::list<std::string> header;
+			header.push_back("Content-Type: application/json");
+			header.push_back("User-Agent: BPM;2;" + std::to_string(0) + ";steam;" + std::to_string(0) + ";");
+			curlpp::Cleanup clean;
+			curlpp::Easy r;
+			r.setOpt(new curlpp::options::Url(url));
+			r.setOpt(new curlpp::options::HttpHeader(header));
+			if (body.size() > 0) {
+				r.setOpt(new curlpp::options::PostFields(body));
+				r.setOpt(new curlpp::options::PostFieldSize(body.length()));
+
+			}
+			std::ostringstream response;
+			r.setOpt(new curlpp::options::WriteStream(&response));
+
+			r.perform();
+
+			return std::string(response.str());
+		}
+
+		catch (curlpp::LogicError & e)
+		{
+			return std::string(e.what());
+		}
+
+		catch (curlpp::RuntimeError & e)
+		{
+			return std::string(e.what());// << std::endl;
+		}
+		catch (...)
+		{
+
+		}
+		return std::string("Err");
+	}, url, body);
+}
+
 HttpClient::~HttpClient(void)
 {
 	if (m_hConnectedEvent)

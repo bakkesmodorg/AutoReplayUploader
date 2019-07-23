@@ -6,9 +6,37 @@
 #include <string>
 #include <map>
 
+#ifdef _WIN32
+#pragma comment(lib, "Wldap32.Lib")
+#pragma comment(lib, "Crypt32.Lib")
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "libssl.lib")
+#pragma comment(lib, "Wldap32.lib")
+#pragma comment(lib, "Normaliz.lib")
+#pragma comment(lib, "libcurl_a.lib")
+#pragma comment(lib, "curlpp.lib")
+#include <windows.h>
+#include <Shlobj_core.h>
+#include <sstream>
+#include <memory>
+#include <curl/curl.h>
+
+//#include "curlpp/curlpp.cpp"
+#include "curlpp/cURLpp.hpp"
+#include "curlpp/Easy.hpp"
+#include "curlpp/Options.hpp"
+#include "curlpp/Exception.hpp"
+
+#include <thread>
+#include <future>
+#endif
+
+
 using namespace std;
 
 #pragma comment( lib, "wininet" )
+
+
 
 class HttpClient;
 
