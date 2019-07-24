@@ -233,9 +233,9 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 
 Player ConstructPlayer(PriWrapper wrapper)
 {
+	Player p;
 	if (!wrapper.IsNull()) 
 	{
-		Player p;
 		p.Name = wrapper.GetPlayerName().ToString();
 		p.UniqueId = wrapper.GetUniqueId().ID;
 		p.Team = wrapper.GetTeamNum();
