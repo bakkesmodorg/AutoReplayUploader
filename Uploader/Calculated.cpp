@@ -25,7 +25,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(string replayPath)
+void Calculated::UploadReplay(string replayPath, string playerId)
 {
 	if (UserAgent.empty() || replayPath.empty())
 	{
@@ -35,8 +35,10 @@ void Calculated::UploadReplay(string replayPath)
 		return;
 	}
 
+	string path = AppendGetParams("https://calculated.gg/api/upload", { {"player_id", playerId}, {"visibility", *visibility} });
+
 	PostFileRequest *request = new PostFileRequest();
-	request->Url = "https://calculated.gg/api/upload";
+	request->Url = path;
 	request->FilePath = replayPath;
 	request->ParamName = "replays";
 	request->Headers.push_back("UserAgent: " + UserAgent);

@@ -13,10 +13,12 @@ public:
 	Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
 	~Calculated();
 
+	shared_ptr<string> visibility = make_shared<string>("DEFAULT");
+
 	void(*Log)(void* object, string message);
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath);
+	void UploadReplay(string replayPath, string playerId);
 };
 
