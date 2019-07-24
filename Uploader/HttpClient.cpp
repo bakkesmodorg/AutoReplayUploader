@@ -2,6 +2,31 @@
 
 #include <vector>
 
+long Get(GetRequest* ctx)
+{
+	try
+	{
+		curlpp::Cleanup cleaner;
+		curlpp::Easy request;
+
+		request.setOpt(new curlpp::options::Url(ctx->Url));
+
+		ctx->Headers.push_back("Expect: "); // disable expect header
+		request.setOpt(new curlpp::options::HttpHeader(ctx->Headers));
+
+		request.perform();
+
+		return curlpp::infos::ResponseCode::get(request);
+	}
+	catch (curlpp::LogicError & e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+	catch (curlpp::RuntimeError & e) {
+		std::cout << e.what() << std::endl;
+	}
+}
+
 long PostFile(PostFileRequest* ctx)
 {
 	try
@@ -31,6 +56,19 @@ long PostFile(PostFileRequest* ctx)
 	catch (curlpp::RuntimeError & e) {
 		std::cout << e.what() << std::endl;
 	}
+}
+
+void GetAsyncThread(void* data)
+{
+	auto ctx = (GetRequest*)data;
+	ctx->Status = Get(ctx);
+	ctx->RequestComplete(ctx);
+}
+
+void GetAsync(GetRequest* request)
+{
+	std::thread http(GetAsyncThread, (void*)request);
+	http.detach();
 }
 
 void PostFileThread(void* data)

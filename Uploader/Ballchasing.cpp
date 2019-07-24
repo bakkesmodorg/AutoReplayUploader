@@ -25,7 +25,13 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 		
 		delete ctx;
 	}
-	else if(ctx->RequestId == 2)
+}
+
+void BallchasingRequestComplete(GetRequest* ctx)
+{
+	auto ballchasing = (Ballchasing*)ctx->Requester;
+
+	if (ctx->RequestId == 2)
 	{
 		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + to_string(ctx->Status));
 		ballchasing->NotifyAuthResult(ballchasing->Client, ctx->Status == 200);
@@ -64,22 +70,15 @@ void Ballchasing::UploadReplay(string replayPath)
 */
 void Ballchasing::TestAuthKey()
 {
-	//HttpRequestObject* ctx = new HttpRequestObject();
-	//ctx->RequestId = 2;
-	//ctx->Requester = this;
-	//ctx->Headers = "Authorization: " + *authKey;
-	//ctx->Server = "ballchasing.com";
-	//ctx->Page = "api/";
-	//ctx->Method = "GET";
-	//ctx->UserAgent = UserAgent;
-	//ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
-	//ctx->RespData = new char[4096];
-	//ctx->RespDataSize = 4096;
-	//ctx->RequestComplete = &BallchasingRequestComplete;
-	//ctx->Flags = INTERNET_FLAG_SECURE;
+	GetRequest *request = new GetRequest();
+	request->Url = "https://ballchasing.com/api/";
+	request->Headers.push_back("Authorization: " + *authKey);
+	request->Headers.push_back("UserAgent: " + UserAgent);
+	request->RequestComplete = &BallchasingRequestComplete;
+	request->RequestId = 2;
+	request->Requester = this;
 
-	//// Fire new thread and make request, dont't wait for response
-	//HttpRequestAsync(ctx);
+	GetAsync(request);
 }
 
 Ballchasing::~Ballchasing()

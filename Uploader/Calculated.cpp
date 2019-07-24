@@ -39,6 +39,7 @@ void Calculated::UploadReplay(string replayPath)
 	request->Url = "https://calculated.gg/api/upload";
 	request->FilePath = replayPath;
 	request->ParamName = "replays";
+	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;
 	request->Requester = this;

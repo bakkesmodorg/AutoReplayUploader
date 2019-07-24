@@ -27,9 +27,8 @@
 
 using namespace std;
 
-class PostFileRequest
+struct PostFileRequest
 {
-public:
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
@@ -42,6 +41,21 @@ public:
 	long Status;
 };
 
+struct GetRequest
+{
+	unsigned int RequestId = 0;
+	void* Requester = NULL;
+
+	string Url;
+	list<string> Headers;
+
+	void(*RequestComplete)(GetRequest*);
+	long Status;
+};
+
+long Get(GetRequest* request);
+void GetAsync(GetRequest* request);
+
 void PostFileAsync(PostFileRequest* request);
-long PostFile(PostFileRequest* ctx);
+long PostFile(PostFileRequest* request);
 string AppendGetParams(string baseUrl, map<string, string> getParams);
