@@ -226,23 +226,26 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	{
 		bool exported = file_exists(replayPath);
 		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
-		gameWrapper->Toast("Autoreplayuploader", msg, "deafult", 3.5f, exported ? ToastType_OK : ToastType_Error);
+		gameWrapper->Toast("Autoreplayuploader", msg, "default", 3.5f, exported ? ToastType_OK : ToastType_Error);
 	}
 #endif
 }
 
 Player ConstructPlayer(PriWrapper wrapper)
 {
-	Player p;
-	p.Name = wrapper.GetPlayerName().ToString();
-	p.UniqueId = wrapper.GetUniqueId().ID;
-	p.Team = wrapper.GetTeamNum();
-	p.Score = wrapper.GetScore();
-	p.Goals = wrapper.GetMatchGoals();
-	p.Assists = wrapper.GetMatchAssists();
-	p.Saves = wrapper.GetMatchSaves();
-	p.Shots = wrapper.GetMatchShots();
-	p.Demos = wrapper.GetMatchDemolishes();
+	if (!wrapper.IsNull()) 
+	{
+		Player p;
+		p.Name = wrapper.GetPlayerName().ToString();
+		p.UniqueId = wrapper.GetUniqueId().ID;
+		p.Team = wrapper.GetTeamNum();
+		p.Score = wrapper.GetScore();
+		p.Goals = wrapper.GetMatchGoals();
+		p.Assists = wrapper.GetMatchAssists();
+		p.Saves = wrapper.GetMatchSaves();
+		p.Shots = wrapper.GetMatchShots();
+		p.Demos = wrapper.GetMatchDemolishes();
+	}
 	return p;
 }
 
@@ -272,10 +275,16 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
-	match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
-
+	if (!playlist.memory_address != NULL)
+	{
+		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
+	}
 	// Get local primary player
-	match.PrimaryPlayer = ConstructPlayer(server.GetLocalPrimaryPlayer().GetPRI());
+	auto localPlayer = server.GetLocalPrimaryPlayer();
+	if (!localPlayer.IsNull())
+	{
+		match.PrimaryPlayer = ConstructPlayer(localPlayer.GetPRI());
+	}
 
 	// Get all players
 	auto players = server.GetLocalPlayers();
