@@ -25,6 +25,11 @@ long Get(GetRequest* ctx)
 	catch (curlpp::RuntimeError & e) {
 		std::cout << e.what() << std::endl;
 	}
+	catch (...)
+	{
+
+	}
+	return 0;
 }
 
 long PostFile(PostFileRequest* ctx)
@@ -56,6 +61,11 @@ long PostFile(PostFileRequest* ctx)
 	catch (curlpp::RuntimeError & e) {
 		std::cout << e.what() << std::endl;
 	}
+	catch (...)
+	{
+
+	}
+	return 0;
 }
 
 void GetAsyncThread(void* data)
