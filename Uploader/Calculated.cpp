@@ -39,8 +39,7 @@ void Calculated::UploadReplay(string replayPath, string playerId)
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = path;
-	request->FilePath = replayPath;
-	request->ParamName = "replays";
+	request->File = new curlpp::FormParts::File(replayPath, "replays");
 	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;

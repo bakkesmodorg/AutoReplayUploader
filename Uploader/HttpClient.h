@@ -33,9 +33,9 @@ struct PostFileRequest
 	void* Requester = NULL;
 
 	string Url;
-	string FilePath;
-	string ParamName;
 	list<string> Headers;
+
+    curlpp::FormParts::File* File;
 
 	void(*RequestComplete)(PostFileRequest*);
 	long Status;

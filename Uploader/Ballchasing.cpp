@@ -54,8 +54,7 @@ void Ballchasing::UploadReplay(string replayPath)
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = AppendGetParams("https://ballchasing.com/api/v2/upload", { {"visibility", *visibility} });
-	request->FilePath = replayPath;
-	request->ParamName = "file";
+    request->File = new curlpp::FormParts::File(replayPath, "file");
 	request->Headers.push_back("Authorization: " + *authKey);
 	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &BallchasingRequestComplete;
