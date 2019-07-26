@@ -210,7 +210,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(replayPath, replayName, to_string(caller.GetLocalPrimaryPlayer().GetPRI().GetUniqueId().ID));
+		calculated->UploadReplay(replayPath, replayName, to_string(gameWrapper->GetSteamID()));
 	}
 	if (*uploadToBallchasing)
 	{
