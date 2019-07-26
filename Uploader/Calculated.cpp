@@ -19,27 +19,34 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
+	DeleteFile(ctx->FilePath.c_str());
+
 	delete ctx;
 }
 
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(string replayPath, string playerId)
+void Calculated::UploadReplay(string replayPath, string replayFileName, string playerId)
 {
-	if (UserAgent.empty() || replayPath.empty())
+	if (UserAgent.empty() || replayPath.empty() || replayFileName.empty())
 	{
 		Log(Client, "Calculated::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
+		Log(Client, "ReplayFileName: " + replayFileName);
 		return;
 	}
 
 	string path = AppendGetParams("https://calculated.gg/api/upload", { {"player_id", playerId}, {"visibility", *visibility} });
 
+	string destPath = "./bakkesmod/data/calculated/" + replayFileName;
+	CreateDirectory("./bakkesmod/data/calculated", NULL);
+	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = path;
-	request->File = new curlpp::FormParts::File(replayPath, "replays");
+	request->FilePath = destPath;
 	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;

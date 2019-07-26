@@ -19,6 +19,6 @@ public:
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath, string playerId);
+	void UploadReplay(string replayPath, string replayFileName, string playerId);
 };
 

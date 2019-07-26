@@ -22,7 +22,9 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 	{
 		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
 		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
-		
+
+		DeleteFile(ctx->FilePath.c_str());
+
 		delete ctx;
 	}
 }
@@ -40,21 +42,27 @@ void BallchasingRequestComplete(GetRequest* ctx)
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath)
+void Ballchasing::UploadReplay(string replayPath, string replayFileName)
 {
-	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
+	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty() || replayFileName.empty())
 	{
 		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
 		Log(Client, "AuthKey: " + *authKey);
 		Log(Client, "Visibility: " + *visibility);
+		Log(Client, "ReplayFileName: " + replayFileName);
 		return;
 	}
 
+	string destPath = "./bakkesmod/data/ballchasing/" + replayFileName;
+	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
+	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = AppendGetParams("https://ballchasing.com/api/v2/upload", { {"visibility", *visibility} });
-    request->File = new curlpp::FormParts::File(replayPath, "file");
+    request->FilePath = destPath;
+	request->ParamName = "file";
 	request->Headers.push_back("Authorization: " + *authKey);
 	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &BallchasingRequestComplete;

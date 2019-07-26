@@ -30,16 +30,17 @@ void BallchasingAuthTestComplete(void* object, bool result)
 
 int main()
 {
-	string replayFile = "C:/Users/tyni/Desktop/7248E9C211E9A2BF122FB1BF6FD9AA21.replay";
+	string filename = "979B723811E971FCE06E328BDF9F6172.replay";
+	string replayFile = "C:/Users/tyni/Desktop/" + filename;
 
-	//Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
-	//*(ballchasing->authKey) = "";
-	//*(ballchasing->visibility) = "public";
-	//ballchasing->UploadReplay(replayFile);
+	Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
+	*(ballchasing->authKey) = "test";
+	*(ballchasing->visibility) = "public";
+	ballchasing->UploadReplay(replayFile, filename);
 
 	Calculated* calculated = new Calculated("consoleuploader", &Log, &CalculatedUploadComplete, NULL);
 	*(calculated->visibility) = "PUBLIC";
-	calculated->UploadReplay(replayFile, "76561198011976380");
+	calculated->UploadReplay(replayFile, filename, "76561198011976380");
 
 	system("PAUSE");
 }

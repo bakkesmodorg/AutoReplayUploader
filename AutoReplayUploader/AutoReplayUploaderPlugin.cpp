@@ -210,11 +210,11 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(replayPath, to_string(caller.GetLocalPrimaryPlayer().GetPRI().GetUniqueId().ID));
+		calculated->UploadReplay(replayPath, replayName, to_string(caller.GetLocalPrimaryPlayer().GetPRI().GetUniqueId().ID));
 	}
 	if (*uploadToBallchasing)
 	{
-		ballchasing->UploadReplay(replayPath);
+		ballchasing->UploadReplay(replayPath, replayName);
 	}
 
 	// If we aren't saving the replay remove it after we've uploaded
