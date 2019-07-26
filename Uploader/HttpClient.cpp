@@ -44,7 +44,6 @@ long PostFile(PostFileRequest* ctx)
 		ctx->Headers.push_back("Expect: "); // disable expect header
 		request.setOpt(new curlpp::options::HttpHeader(ctx->Headers));
 
-		request.setOpt(new curlpp::options::Proxy("localhost:8888"));
 		{
 			curlpp::Forms formParts;
 			formParts.push_back(new curlpp::FormParts::File(ctx->ParamName, ctx->FilePath));
