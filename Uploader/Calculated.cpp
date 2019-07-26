@@ -51,6 +51,7 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;
 	request->Requester = this;
+	request->message = "";
 
 	PostFileAsync(request);
 }

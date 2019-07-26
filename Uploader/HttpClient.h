@@ -40,6 +40,7 @@ struct PostFileRequest
 
 	void(*RequestComplete)(PostFileRequest*);
 	long Status;
+	std::string message;
 };
 
 struct GetRequest

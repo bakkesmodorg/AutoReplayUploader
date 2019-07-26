@@ -56,14 +56,16 @@ long PostFile(PostFileRequest* ctx)
 	}
 	catch (curlpp::LogicError & e)
 	{
+		ctx->message = e.what();
 		std::cout << e.what() << std::endl;
 	}
 	catch (curlpp::RuntimeError & e) {
+		ctx->message = e.what();
 		std::cout << e.what() << std::endl;
 	}
 	catch (...)
 	{
-
+		ctx->message = "Unknown exception occurred";
 	}
 	return 0;
 }
@@ -115,7 +117,7 @@ string AppendGetParams(string baseUrl, map<string, string> getParams)
 char* CopyToCharPtr(vector<uint8_t>& vector)
 {
 	char *reqData = new char[vector.size() + 1];
-	for (int i = 0; i < vector.size(); i++)
+	for (size_t i = 0; i < vector.size(); i++)
 		reqData[i] = vector[i];
 	reqData[vector.size()] = '\0';
 	return reqData;

@@ -24,7 +24,7 @@ bool RemoveChars(shared_ptr<string> str, vector<char> charsToRemove, bool change
 	{
 		char c = (*str)[i];
 		bool found = false;
-		for (int j = 0; j < charsToRemove.size(); j++)
+		for (size_t j = 0; j < charsToRemove.size(); j++)
 		{
 			if (c == charsToRemove[j])
 			{
