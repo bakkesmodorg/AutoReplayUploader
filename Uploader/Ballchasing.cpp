@@ -55,7 +55,7 @@ void Ballchasing::UploadReplay(string replayPath, string replayFileName)
 		return;
 	}
 
-	string destPath = "./bakkesmod/data/ballchasing/" + replayFileName;
+	string destPath = "./bakkesmod/data/ballchasing/" + replayFileName + ".replay";
 	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
 	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 

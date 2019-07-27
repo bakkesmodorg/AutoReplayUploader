@@ -40,13 +40,14 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 
 	string path = AppendGetParams("https://calculated.gg/api/upload", { {"player_id", playerId}, {"visibility", *visibility} });
 
-	string destPath = "./bakkesmod/data/calculated/" + replayFileName;
+	string destPath = "./bakkesmod/data/calculated/" + replayFileName + ".replay";
 	CreateDirectory("./bakkesmod/data/calculated", NULL);
 	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = path;
 	request->FilePath = destPath;
+	request->ParamName = "replays";
 	request->Headers.push_back("UserAgent: " + UserAgent);
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;
