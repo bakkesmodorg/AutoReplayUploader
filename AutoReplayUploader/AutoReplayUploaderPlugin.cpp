@@ -29,6 +29,7 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1",
 #define CVAR_BALLCHASING_AUTH_KEY "cl_autoreplayupload_ballchasing_authkey"
 #define CVAR_BALLCHASING_AUTH_TEST_RESULT "cl_autoreplayupload_ballchasing_testkeyresult"
 #define CVAR_BALLCHASING_REPLAY_VISIBILITY "cl_autoreplayupload_ballchasing_visibility"
+#define CVAR_CALCULATED_REPLAY_VISIBILITY "cl_autoreplayupload_calculated_visibility"
 
 string GetPlaylistName(int playlistId);
 
@@ -88,8 +89,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	string userAgent = userAgentStream.str();
 
 	// Setup upload handlers
-	ballchasing = new Ballchasing(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
-	calculated = new Calculated(userAgent, "----BakkesModFileUpload90m8924r390j34f0", &Log, &CalculatedUploadComplete, this);
+	ballchasing = new Ballchasing(userAgent, &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
+	calculated = new Calculated(userAgent, &Log, &CalculatedUploadComplete, this);
 
 	InitializeVariables();
 
@@ -123,11 +124,12 @@ void AutoReplayUploaderPlugin::onUnload()
 
 void AutoReplayUploaderPlugin::InitializeVariables()
 {
-	// What endpoints should we upload to?
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
-	
+	// Calculated variables
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);		
+	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "DEFAULT", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, false).bindTo(calculated->visibility);
+
 	// Ball Chasing variables	
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
 	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
@@ -208,11 +210,11 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(replayPath);
+		calculated->UploadReplay(replayPath, replayName, to_string(gameWrapper->GetSteamID()));
 	}
 	if (*uploadToBallchasing)
 	{
-		ballchasing->UploadReplay(replayPath);
+		ballchasing->UploadReplay(replayPath, replayName);
 	}
 
 	// If we aren't saving the replay remove it after we've uploaded
@@ -226,7 +228,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	{
 		bool exported = file_exists(replayPath);
 		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
-		gameWrapper->Toast("Autoreplayuploader", msg, "deafult", 3.5f, exported ? ToastType_OK : ToastType_Error);
+		gameWrapper->Toast("Autoreplayuploader", msg, "default", 3.5f, exported ? ToastType_OK : ToastType_Error);
 	}
 #endif
 }
@@ -234,15 +236,18 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 Player ConstructPlayer(PriWrapper wrapper)
 {
 	Player p;
-	p.Name = wrapper.GetPlayerName().ToString();
-	p.UniqueId = wrapper.GetUniqueId().ID;
-	p.Team = wrapper.GetTeamNum();
-	p.Score = wrapper.GetScore();
-	p.Goals = wrapper.GetMatchGoals();
-	p.Assists = wrapper.GetMatchAssists();
-	p.Saves = wrapper.GetMatchSaves();
-	p.Shots = wrapper.GetMatchShots();
-	p.Demos = wrapper.GetMatchDemolishes();
+	if (!wrapper.IsNull()) 
+	{
+		p.Name = wrapper.GetPlayerName().ToString();
+		p.UniqueId = wrapper.GetUniqueId().ID;
+		p.Team = wrapper.GetTeamNum();
+		p.Score = wrapper.GetScore();
+		p.Goals = wrapper.GetMatchGoals();
+		p.Assists = wrapper.GetMatchAssists();
+		p.Saves = wrapper.GetMatchSaves();
+		p.Shots = wrapper.GetMatchShots();
+		p.Demos = wrapper.GetMatchDemolishes();
+	}
 	return p;
 }
 
@@ -272,10 +277,16 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
-	match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
-
+	if (!playlist.memory_address != NULL)
+	{
+		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
+	}
 	// Get local primary player
-	match.PrimaryPlayer = ConstructPlayer(server.GetLocalPrimaryPlayer().GetPRI());
+	auto localPlayer = server.GetLocalPrimaryPlayer();
+	if (!localPlayer.IsNull())
+	{
+		match.PrimaryPlayer = ConstructPlayer(localPlayer.GetPRI());
+	}
 
 	// Get all players
 	auto players = server.GetLocalPlayers();

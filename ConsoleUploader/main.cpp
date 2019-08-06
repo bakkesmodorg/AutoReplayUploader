@@ -30,21 +30,17 @@ void BallchasingAuthTestComplete(void* object, bool result)
 
 int main()
 {
-	string replayFile = "C:/Program Files (x86)/Steam/steamapps/common/rocketleague/Binaries/Win32/bakkesmod/data/autoupload.replay";
+	string filename = "979B723811E971FCE06E328BDF9F6172.replay";
+	string replayFile = "C:/Users/tyni/Desktop/" + filename;
 
-	string exportDir = "C:/Program Files (x86)/Steam/steamapps/common/rocketleague/Binaries/Win32/bakkesmod/data/";
-	string replayName = "tyni";
-
-	string replayPath = CalculateReplayPath(exportDir, replayName);
-
-	Calculated* calculated = new Calculated("consoleuploader", "----boundary", &Log, &CalculatedUploadComplete, NULL);
-	Ballchasing* ballchasing = new Ballchasing("consoleuploader", "----boundary", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
-
-	*(ballchasing->authKey) = "";
+	Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
+	*(ballchasing->authKey) = "test";
 	*(ballchasing->visibility) = "public";
+	ballchasing->UploadReplay(replayFile, filename);
 
-	ballchasing->UploadReplay(replayFile);
-	calculated->UploadReplay(replayFile);
+	Calculated* calculated = new Calculated("consoleuploader", &Log, &CalculatedUploadComplete, NULL);
+	*(calculated->visibility) = "PUBLIC";
+	calculated->UploadReplay(replayFile, filename, "76561198011976380");
 
 	system("PAUSE");
 }

@@ -5,63 +5,76 @@
 
 using namespace std;
 
-Ballchasing::Ballchasing(string userAgent, string uploadBoundary, void(*Log)(void *object, string message), void(*NotifyUploadResult)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client)
+Ballchasing::Ballchasing(string userAgent, void(*Log)(void *object, string message), void(*NotifyUploadResult)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client)
 {
 	this->UserAgent = userAgent;
-	this->uploadBoundary = uploadBoundary;
 	this->Log = Log;
 	this->NotifyUploadResult = NotifyUploadResult;
 	this->NotifyAuthResult = NotifyAuthResult;
 	this->Client = Client;
 }
 
-void BallchasingRequestComplete(HttpRequestObject* ctx)
+void BallchasingRequestComplete(PostFileRequest* ctx)
 {
 	auto ballchasing = (Ballchasing*)ctx->Requester;
 
 	if (ctx->RequestId == 1)
 	{
 		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
+		if (ctx->message.size() > 0)
+		{
+			ballchasing->Log(ballchasing->Client, ctx->message);
+		}
 		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
-		
-		delete[] ctx->ReqData;
-		delete[] ctx->RespData;
-		delete ctx;
-	}
-	else if(ctx->RequestId == 2)
-	{
-		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + to_string(ctx->Status));
-		ballchasing->NotifyAuthResult(ballchasing->Client, ctx->Status == 200);
 
-		delete[] ctx->RespData;
+		DeleteFile(ctx->FilePath.c_str());
+
 		delete ctx;
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath)
+void BallchasingRequestComplete(GetRequest* ctx)
 {
-	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
+	auto ballchasing = (Ballchasing*)ctx->Requester;
+
+	if (ctx->RequestId == 2)
+	{
+		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + to_string(ctx->Status));
+		ballchasing->NotifyAuthResult(ballchasing->Client, ctx->Status == 200);
+
+		delete ctx;
+	}
+}
+
+void Ballchasing::UploadReplay(string replayPath, string replayFileName)
+{
+	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty() || replayFileName.empty())
 	{
 		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
 		Log(Client, "AuthKey: " + *authKey);
 		Log(Client, "Visibility: " + *visibility);
+		Log(Client, "ReplayFileName: " + replayFileName);
 		return;
 	}
 
-	// Fire new thread and make request, dont't wait for response
-	HttpFileUploadAsync(
-		"ballchasing.com",
-		AppendGetParams("api/upload", { {"visibility", *visibility} }),
-		UserAgent,
-		replayPath,
-		"file",
-		"Authorization: " + *authKey,
-		uploadBoundary,
-		1,
-		this,
-		&BallchasingRequestComplete);
+	string destPath = "./bakkesmod/data/ballchasing/" + replayFileName + ".replay";
+	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
+	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+
+	PostFileRequest *request = new PostFileRequest();
+	request->Url = AppendGetParams("https://ballchasing.com/api/v2/upload", { {"visibility", *visibility} });
+    request->FilePath = destPath;
+	request->ParamName = "file";
+	request->Headers.push_back("Authorization: " + *authKey);
+	request->Headers.push_back("UserAgent: " + UserAgent);
+	request->RequestComplete = &BallchasingRequestComplete;
+	request->RequestId = 1;
+	request->Requester = this;
+	request->message = "";
+
+	PostFileAsync(request);
 }
 
 /**
@@ -69,22 +82,15 @@ void Ballchasing::UploadReplay(string replayPath)
 */
 void Ballchasing::TestAuthKey()
 {
-	HttpRequestObject* ctx = new HttpRequestObject();
-	ctx->RequestId = 2;
-	ctx->Requester = this;
-	ctx->Headers = "Authorization: " + *authKey;
-	ctx->Server = "ballchasing.com";
-	ctx->Page = "api/";
-	ctx->Method = "GET";
-	ctx->UserAgent = UserAgent;
-	ctx->Port = INTERNET_DEFAULT_HTTPS_PORT;
-	ctx->RespData = new char[4096];
-	ctx->RespDataSize = 4096;
-	ctx->RequestComplete = &BallchasingRequestComplete;
-	ctx->Flags = INTERNET_FLAG_SECURE;
+	GetRequest *request = new GetRequest();
+	request->Url = "https://ballchasing.com/api/";
+	request->Headers.push_back("Authorization: " + *authKey);
+	request->Headers.push_back("UserAgent: " + UserAgent);
+	request->RequestComplete = &BallchasingRequestComplete;
+	request->RequestId = 2;
+	request->Requester = this;
 
-	// Fire new thread and make request, dont't wait for response
-	HttpRequestAsync(ctx);
+	GetAsync(request);
 }
 
 Ballchasing::~Ballchasing()
