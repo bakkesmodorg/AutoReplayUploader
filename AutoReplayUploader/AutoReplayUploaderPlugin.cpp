@@ -157,7 +157,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
  
 	// Calculated variables
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);		
-	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "PUBLIC", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, true).bindTo(calculated->visibility);
+	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "DEFAULT", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, true).bindTo(calculated->visibility);
 
 	// Ball Chasing variables	
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
