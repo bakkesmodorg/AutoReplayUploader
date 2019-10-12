@@ -13,7 +13,7 @@ public:
 	Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
 	~Calculated();
 
-	shared_ptr<string> visibility = make_shared<string>("DEFAULT");
+	shared_ptr<string> visibility = make_shared<string>("PUBLIC");
 
 	void(*Log)(void* object, string message);
 	void(*NotifyUploadResult)(void* object, bool result);
