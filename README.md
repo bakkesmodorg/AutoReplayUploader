@@ -13,7 +13,7 @@ BakkesMod plugin that automatically uploads Rocket League replays to other servi
 
 **UnitTests:** UnitTests for the Uploader.vcxproj project.
 
-## Settings available in BakesMod Settings Console
+## Settings available in BakkesMod Settings Console
 
 Upload to Calculated - Enable automatic replay uploading to calculated.gg
 Upload to Balchasing - Enable automatic replay uploading to ballchasing.com
