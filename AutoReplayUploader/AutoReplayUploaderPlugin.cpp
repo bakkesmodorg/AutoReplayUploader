@@ -16,7 +16,7 @@
 
 using namespace std;
 
-BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1", 0);
+BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.2", 0);
 
 // Constant CVAR variable names
 #define CVAR_REPLAY_EXPORT_PATH "cl_autoreplayupload_filepath"
@@ -32,6 +32,9 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.1",
 #define CVAR_CALCULATED_REPLAY_VISIBILITY "cl_autoreplayupload_calculated_visibility"
 
 string GetPlaylistName(int playlistId);
+Match backupMatchForReplayName;
+bool needToUploadReplay = false;
+string backupPlayerSteamID = "";
 
 void Log(void* object, string message)
 {
@@ -94,9 +97,34 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	InitializeVariables();
 
+
+	// Register for Game ending event	
+	gameWrapper->HookEventWithCaller<ServerWrapper>(
+		"Function GameEvent_Soccar_TA.Active.StartRound",
+		bind(
+			&AutoReplayUploaderPlugin::GetPlayerData,
+			this,
+			placeholders::_1,
+			placeholders::_2,
+			placeholders::_3
+		)
+	);
+
 	// Register for Game ending event	
 	gameWrapper->HookEventWithCaller<ServerWrapper>(
 		"Function TAGame.GameEvent_Soccar_TA.EventMatchEnded",
+		bind(
+			&AutoReplayUploaderPlugin::OnGameComplete,
+			this,
+			placeholders::_1,
+			placeholders::_2,
+			placeholders::_3
+		)
+	);
+
+	// Register for Game ending event	
+	gameWrapper->HookEventWithCaller<ServerWrapper>(
+		"Function TAGame.GameEvent_Soccar_TA.Destroyed",
 		bind(
 			&AutoReplayUploaderPlugin::OnGameComplete,
 			this,
@@ -124,9 +152,12 @@ void AutoReplayUploaderPlugin::onUnload()
 
 void AutoReplayUploaderPlugin::InitializeVariables()
 {
+	// Set the default status of uploading replay to false
+	needToUploadReplay = false;
+ 
 	// Calculated variables
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);		
-	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "DEFAULT", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, false).bindTo(calculated->visibility);
+	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "DEFAULT", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, true).bindTo(calculated->visibility);
 
 	// Ball Chasing variables	
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
@@ -185,6 +216,19 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		return; //Not uploading replays
 	}
 
+    if (needToUploadReplay == false) {
+		// Replay might have already been saved by Function TAGame.GameEvent_Soccar_TA.EventMatchEnded
+		// event if the player stayed in the game long enough. Or we are leaving freeplay, 
+		// custom training, etc instead of online game and will not proceed to upload anything.
+    	return;
+    } else {
+    	// Since the needToUploadReplay was true, we have just finished an online game and this is
+    	// the first time uploading is requested. We will flag that the upload process has 
+    	// now been started and will continue to upload the replay.
+    	needToUploadReplay = false;
+		cvarManager->log("Uploading replay started: " + eventName);
+	}
+
 	// Get ReplayDirector
 	ReplayDirectorWrapper replayDirector = caller.GetReplayDirector();
 	if (replayDirector.IsNull())
@@ -200,17 +244,29 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 		cvarManager->log("Could not upload replay, replay is NULL!");
 		return;
 	}
-
+	soccarReplay.StopRecord();
+	
 	// If we have a template for the replay name then set the replay name based off that template else use default template
 	string replayName = SetReplayName(caller, soccarReplay);
 
 	// Export the replay to a file for upload
 	string replayPath = ExportReplay(soccarReplay, replayName);
 
+
+	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
+	// the steamID might not be available. Using prestored steamID
+    string playerSteamID = to_string(gameWrapper->GetSteamID());
+    if (playerSteamID.length() < 1) {
+    	playerSteamID = backupPlayerSteamID;
+		cvarManager->log("Using backup steamId to upload: " + playerSteamID);
+    } else {
+		cvarManager->log("Using steamId to upload: " + playerSteamID);
+    }
+
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(replayPath, replayName, to_string(gameWrapper->GetSteamID()));
+		calculated->UploadReplay(replayPath, replayName, playerSteamID);
 	}
 	if (*uploadToBallchasing)
 	{
@@ -251,6 +307,44 @@ Player ConstructPlayer(PriWrapper wrapper)
 	return p;
 }
 
+void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void * params, string eventName)
+{
+    /*****************************************************************************************
+    * This function will save primary player userdata at the start of any online game. There *
+    * are now number of different events that will try to upload the replays after matches.  *
+    * This is needed to make the replay uploads more reliable no matter how fast or slow you *
+    * leave the current game.  In some cases the player data might not be anymore available  * 
+    * when uploading the replay, and that is why we save it in at start of the match.        *
+    *****************************************************************************************/
+	
+	//Function GameEvent_Soccar_TA.Active.StartRound -event will fire in all modes
+	//like freeplay, custom training etc. Set the needToUploadReplay flag replay only 
+	//if we are in an online game.
+	if (gameWrapper->IsInOnlineGame()) {
+	    needToUploadReplay = true;
+	} else {
+		//If we are not in online game, we are in freeplay, custom training etc
+		// We will set the needToUploadReplay flag to false and no need to save the player data.
+	    needToUploadReplay = false;
+	    return;
+	}
+	
+	// We are in online game and now storing some important player data, if needed after the game
+	// When uploading the replay.
+	backupPlayerSteamID = to_string(gameWrapper->GetSteamID());
+
+    CarWrapper mycar = gameWrapper->GetLocalCar();
+    if (!mycar.IsNull()) {
+        PriWrapper mycarpri = mycar.GetPRI();
+        if (!mycarpri.IsNull()) {
+               backupMatchForReplayName.PrimaryPlayer = ConstructPlayer(mycarpri);
+        }
+    }
+
+	cvarManager->log("StartRound: Stored userdata for:" + backupMatchForReplayName.PrimaryPlayer.Name);
+}
+
+
 /**
 * SetReplayName - Called to set the name of the replay in the replay file.
 * Params:
@@ -282,11 +376,24 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
 	}
 	// Get local primary player
-	auto localPlayer = server.GetLocalPrimaryPlayer();
-	if (!localPlayer.IsNull())
-	{
-		match.PrimaryPlayer = ConstructPlayer(localPlayer.GetPRI());
-	}
+    CarWrapper mycar = gameWrapper->GetLocalCar();
+    if (!mycar.IsNull()) {
+        PriWrapper mycarpri = mycar.GetPRI();
+        if (!mycarpri.IsNull()) {
+               match.PrimaryPlayer = ConstructPlayer(mycarpri);
+        }
+    }
+
+    // If upload game was initiated by event Function TAGame.GameEvent_Soccar_TA.Destroyed
+    // it is very likely that the primary player data can not be anymore fetched.
+    // That's why we saved this data in Function GameEvent_Soccar_TA.Active.StartRound -event
+    // and will use it, if needed, to get correct player for the game being uploaded.
+    if (match.PrimaryPlayer.Name.length() < 1 && backupMatchForReplayName.PrimaryPlayer.Name.length() > 0){
+	    cvarManager->log("Using prerecorder username for replay: " + backupMatchForReplayName.PrimaryPlayer.Name);
+    	match.PrimaryPlayer.Name = backupMatchForReplayName.PrimaryPlayer.Name;
+    	match.PrimaryPlayer.UniqueId = backupMatchForReplayName.PrimaryPlayer.UniqueId;
+    	match.PrimaryPlayer.Team = backupMatchForReplayName.PrimaryPlayer.Team;
+    }
 
 	// Get all players
 	auto players = server.GetLocalPlayers();
@@ -330,6 +437,7 @@ string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay,
 	}
 
 	// Export Replay
+	
 	soccarReplay.ExportReplay(replayPath);
 	cvarManager->log("Exported replay to: " + replayPath);
 
