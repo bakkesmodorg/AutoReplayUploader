@@ -41,7 +41,7 @@ struct PostFileRequest
 	void(*RequestComplete)(PostFileRequest*);
 	long Status;
 	string Message;
-    string ResponseBody;
+	string ResponseBody;
 };
 
 struct GetRequest
