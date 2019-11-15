@@ -50,13 +50,13 @@ long PostFile(PostFileRequest* ctx)
 			request.setOpt(new curlpp::options::HttpPost(formParts));
 		}
 
-        std::ostringstream response;
-        request.setOpt(new curlpp::options::WriteStream(&response));
+		std::ostringstream response;
+		request.setOpt(new curlpp::options::WriteStream(&response));
 
 		request.perform();
 
-        ctx->ResponseBody = std::string(response.str());
-        
+		ctx->ResponseBody = std::string(response.str());
+
 		return curlpp::infos::ResponseCode::get(request);
 	}
 	catch (curlpp::LogicError & e)

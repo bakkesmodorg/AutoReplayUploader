@@ -25,10 +25,10 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 		{
 			ballchasing->Log(ballchasing->Client, ctx->Message);
 		}
-        if (ctx->ResponseBody.size() > 0)
-        {
-            ballchasing->Log(ballchasing->Client, ctx->ResponseBody);
-        }
+		if (ctx->ResponseBody.size() > 0)
+		{
+			ballchasing->Log(ballchasing->Client, ctx->ResponseBody);
+		}
 		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
 		DeleteFile(ctx->FilePath.c_str());
