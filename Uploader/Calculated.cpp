@@ -27,11 +27,6 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 	}
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
-	if (ctx->message.size() > 0)
-	{
-		calculated->Log(calculated->Client, ctx->message);
-	}
-
 	DeleteFile(ctx->FilePath.c_str());
 
 	delete ctx;
