@@ -46,6 +46,7 @@ public:
 	virtual void onLoad();
 	virtual void onUnload();
 	
+	void GetPlayerData(ServerWrapper caller, void* params, string eventName);
 	void OnGameComplete(ServerWrapper caller, void* params, string eventName);
 
 #ifdef TOAST
