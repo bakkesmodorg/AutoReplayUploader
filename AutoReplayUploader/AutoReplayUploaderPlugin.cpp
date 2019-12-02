@@ -253,6 +253,10 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// Export the replay to a file for upload
 	string replayPath = ExportReplay(soccarReplay, replayName);
 
+	if (replayPath.find("autosaved.replay") != std::string::npos)
+	{
+		replayName = "autosaved";
+	}
 
 	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
 	// the steamID might not be available. Using prestored steamID
