@@ -21,9 +21,13 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 	if (ctx->RequestId == 1)
 	{
 		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
-		if (ctx->message.size() > 0)
+		if (ctx->Message.size() > 0)
 		{
-			ballchasing->Log(ballchasing->Client, ctx->message);
+			ballchasing->Log(ballchasing->Client, ctx->Message);
+		}
+		if (ctx->ResponseBody.size() > 0)
+		{
+			ballchasing->Log(ballchasing->Client, ctx->ResponseBody);
 		}
 		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
@@ -72,7 +76,7 @@ void Ballchasing::UploadReplay(string replayPath, string replayFileName)
 	request->RequestComplete = &BallchasingRequestComplete;
 	request->RequestId = 1;
 	request->Requester = this;
-	request->message = "";
+	request->Message = "";
 
 	PostFileAsync(request);
 }

@@ -50,22 +50,27 @@ long PostFile(PostFileRequest* ctx)
 			request.setOpt(new curlpp::options::HttpPost(formParts));
 		}
 
+		std::ostringstream response;
+		request.setOpt(new curlpp::options::WriteStream(&response));
+
 		request.perform();
+
+		ctx->ResponseBody = std::string(response.str());
 
 		return curlpp::infos::ResponseCode::get(request);
 	}
 	catch (curlpp::LogicError & e)
 	{
-		ctx->message = e.what();
+		ctx->Message = e.what();
 		std::cout << e.what() << std::endl;
 	}
 	catch (curlpp::RuntimeError & e) {
-		ctx->message = e.what();
+		ctx->Message = e.what();
 		std::cout << e.what() << std::endl;
 	}
 	catch (...)
 	{
-		ctx->message = "Unknown exception occurred";
+		ctx->Message = "Unknown exception occurred";
 	}
 	return 0;
 }

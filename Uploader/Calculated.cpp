@@ -17,6 +17,14 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 	auto calculated = (Calculated*)ctx->Requester;
 
 	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
+	if (ctx->Message.size() > 0)
+	{
+		calculated->Log(calculated->Client, ctx->Message);
+	}
+	if (ctx->ResponseBody.size() > 0)
+	{
+		calculated->Log(calculated->Client, ctx->ResponseBody);
+	}
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
 	if (ctx->message.size() > 0)
@@ -62,7 +70,7 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 	request->RequestComplete = &CalculatedRequestComplete;
 	request->RequestId = 1;
 	request->Requester = this;
-	request->message = "";
+	request->Message = "";
 
 	PostFileAsync(request);
 }
