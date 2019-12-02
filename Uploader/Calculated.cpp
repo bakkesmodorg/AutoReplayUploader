@@ -43,11 +43,16 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 		return;
 	}
 
-	string path = AppendGetParams("https://calculated.gg/api/upload", { {"player_id", playerId}, {"visibility", *visibility} });
+	string path = AppendGetParams("https://upload.calculated.gg/parse_replay", { {"player_id", playerId}, {"visibility", *visibility} });
 
 	string destPath = "./bakkesmod/data/calculated/" + replayFileName + ".replay";
 	CreateDirectory("./bakkesmod/data/calculated", NULL);
-	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+
+	Log(Client, "ReplayPath: " + replayPath);
+	Log(Client, "ReplayFileName: " + replayFileName);
+	Log(Client, "DestPath: " + destPath);
+	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = path;
