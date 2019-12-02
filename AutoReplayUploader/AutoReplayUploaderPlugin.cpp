@@ -203,10 +203,14 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 
 	// If we have a template for the replay name then set the replay name based off that template else use default template
 	string replayName = SetReplayName(caller, soccarReplay);
+	
 
 	// Export the replay to a file for upload
 	string replayPath = ExportReplay(soccarReplay, replayName);
-
+	if (replayPath.find("autosaved.replay") != std::string::npos)
+	{
+		replayName = "autosaved";
+	}
 	// Upload replay
 	if (*uploadToCalculated)
 	{
@@ -277,7 +281,7 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 
 	// Get Gamemode game was in
 	auto playlist = server.GetPlaylist();
-	if (!playlist.memory_address != NULL)
+	if (playlist.memory_address != NULL)
 	{
 		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
 	}
@@ -337,7 +341,7 @@ string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay,
 	if (!file_exists(replayPath))
 	{
 		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path.");
-		replayPath = string(DEAULT_EXPORT_PATH) + "/autosaved.replay";
+		replayPath = string(DEAULT_EXPORT_PATH) + "autosaved.replay";
 
 		soccarReplay.ExportReplay(replayPath);
 		cvarManager->log("Exported replay to: " + replayPath);
