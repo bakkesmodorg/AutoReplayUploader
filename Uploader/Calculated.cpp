@@ -37,14 +37,13 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(string replayPath, string replayFileName, string playerId)
+void Calculated::UploadReplay(string replayPath, string playerId)
 {
-	if (UserAgent.empty() || replayPath.empty() || replayFileName.empty())
+	if (UserAgent.empty() || replayPath.empty())
 	{
 		Log(Client, "Calculated::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
-		Log(Client, "ReplayFileName: " + replayFileName);
 		return;
 	}
 
@@ -55,7 +54,6 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 
 	Log(Client, "ReplayPath: " + replayPath);
-	Log(Client, "ReplayFileName: " + replayFileName);
 	Log(Client, "DestPath: " + destPath);
 	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
 
