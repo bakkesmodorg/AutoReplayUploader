@@ -36,11 +36,11 @@ int main()
 	Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
 	*(ballchasing->authKey) = "test";
 	*(ballchasing->visibility) = "public";
-	ballchasing->UploadReplay(replayFile, filename);
+	ballchasing->UploadReplay(replayFile);
 
 	Calculated* calculated = new Calculated("consoleuploader", &Log, &CalculatedUploadComplete, NULL);
 	*(calculated->visibility) = "PUBLIC";
-	calculated->UploadReplay(replayFile, filename, "76561198011976380");
+	calculated->UploadReplay(replayFile, "76561198011976380");
 
 	system("PAUSE");
 }

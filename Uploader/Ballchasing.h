@@ -22,7 +22,7 @@ public:
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath, string replayFileName);
+	void UploadReplay(string replayPath);
 	void TestAuthKey();
 };
 

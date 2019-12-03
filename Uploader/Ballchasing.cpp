@@ -50,16 +50,15 @@ void BallchasingRequestComplete(GetRequest* ctx)
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath, string replayFileName)
+void Ballchasing::UploadReplay(string replayPath)
 {
-	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty() || replayFileName.empty())
+	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
 	{
 		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
 		Log(Client, "AuthKey: " + *authKey);
 		Log(Client, "Visibility: " + *visibility);
-		Log(Client, "ReplayFileName: " + replayFileName);
 		return;
 	}
 
@@ -68,7 +67,6 @@ void Ballchasing::UploadReplay(string replayPath, string replayFileName)
 	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 
 	Log(Client, "ReplayPath: " + replayPath);
-	Log(Client, "ReplayFileName: " + replayFileName);
 	Log(Client, "DestPath: " + destPath);
 	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
 
