@@ -12,7 +12,7 @@ namespace UnitTests
 	{
 	public:
 
-		TEST_METHOD(SanitizeExportPath_ValidReturnsFalse)
+		TEST_METHOD(ValidReturnsFalse)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("C:/test");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
@@ -33,7 +33,7 @@ namespace UnitTests
 			Assert::AreEqual(false, changed);
 		}
 		
-		TEST_METHOD(SanitizeExportPath_ConvertsAllBSlashToFSlash)
+		TEST_METHOD(ConvertsAllBSlashToFSlash)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("C:\\test\\");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
@@ -45,7 +45,7 @@ namespace UnitTests
 			Assert::AreEqual(true, changed);
 		}
 
-		TEST_METHOD(SanitizeExportPath_EmptyPathReturnsDefault)
+		TEST_METHOD(EmptyPathReturnsDefault)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
@@ -55,7 +55,7 @@ namespace UnitTests
 			Assert::AreEqual(true, changed);
 		}
 
-		TEST_METHOD(SanitizeExportPath_IllegalCharsRemoved)
+		TEST_METHOD(IllegalCharsRemoved)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("|C:\\*t?e\"s<t>");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
@@ -65,7 +65,7 @@ namespace UnitTests
 			Assert::AreEqual(true, changed);
 		}
 
-		TEST_METHOD(SanitizeExportPath_OnlyIllegalCharsReturnsDefault)
+		TEST_METHOD(OnlyIllegalCharsReturnsDefault)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("*?\"<>|");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
@@ -75,7 +75,7 @@ namespace UnitTests
 			Assert::AreEqual(true, changed);
 		}
 
-		TEST_METHOD(SanitizeExportPath_OnlyTrailingSlashReturnsDefault)
+		TEST_METHOD(OnlyTrailingSlashReturnsDefault)
 		{
 			shared_ptr<string> exportPath = make_shared<string>("/");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);

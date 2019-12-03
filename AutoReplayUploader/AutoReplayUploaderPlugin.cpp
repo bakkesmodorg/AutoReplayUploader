@@ -376,24 +376,27 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
 	}
 	// Get local primary player
-    CarWrapper mycar = gameWrapper->GetLocalCar();
-    if (!mycar.IsNull()) {
-        PriWrapper mycarpri = mycar.GetPRI();
-        if (!mycarpri.IsNull()) {
-               match.PrimaryPlayer = ConstructPlayer(mycarpri);
-        }
-    }
+	CarWrapper mycar = gameWrapper->GetLocalCar();
+	if (!mycar.IsNull()) 
+	{
+		PriWrapper mycarpri = mycar.GetPRI();
+		if (!mycarpri.IsNull()) 
+		{
+			match.PrimaryPlayer = ConstructPlayer(mycarpri);
+		}
+	}
 
-    // If upload game was initiated by event Function TAGame.GameEvent_Soccar_TA.Destroyed
-    // it is very likely that the primary player data can not be anymore fetched.
-    // That's why we saved this data in Function GameEvent_Soccar_TA.Active.StartRound -event
-    // and will use it, if needed, to get correct player for the game being uploaded.
-    if (match.PrimaryPlayer.Name.length() < 1 && backupMatchForReplayName.PrimaryPlayer.Name.length() > 0){
-	    cvarManager->log("Using prerecorder username for replay: " + backupMatchForReplayName.PrimaryPlayer.Name);
-    	match.PrimaryPlayer.Name = backupMatchForReplayName.PrimaryPlayer.Name;
-    	match.PrimaryPlayer.UniqueId = backupMatchForReplayName.PrimaryPlayer.UniqueId;
-    	match.PrimaryPlayer.Team = backupMatchForReplayName.PrimaryPlayer.Team;
-    }
+	// If upload game was initiated by event Function TAGame.GameEvent_Soccar_TA.Destroyed
+	// it is very likely that the primary player data can not be anymore fetched.
+	// That's why we saved this data in Function GameEvent_Soccar_TA.Active.StartRound -event
+	// and will use it, if needed, to get correct player for the game being uploaded.
+	if (match.PrimaryPlayer.Name.length() < 1 && backupMatchForReplayName.PrimaryPlayer.Name.length() > 0)
+	{
+		cvarManager->log("Using prerecorder username for replay: " + backupMatchForReplayName.PrimaryPlayer.Name);
+		match.PrimaryPlayer.Name = backupMatchForReplayName.PrimaryPlayer.Name;
+		match.PrimaryPlayer.UniqueId = backupMatchForReplayName.PrimaryPlayer.UniqueId;
+		match.PrimaryPlayer.Team = backupMatchForReplayName.PrimaryPlayer.Team;
+	}
 
 	// Get all players
 	auto players = server.GetLocalPlayers();
