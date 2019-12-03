@@ -23,6 +23,21 @@ bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string de
 	return changed;
 }
 
+string SanitizePlayerName(string playerName, string defaultValue)
+{
+	// Remove illegal characters for filename
+	vector<char> illegalChars{ '\\', '/', ':', '*', '?', '\"', '<', '>', '|' };
+	RemoveChars(playerName, illegalChars, false);
+
+	// If empty use default
+	if (playerName.empty())
+	{
+		playerName = defaultValue;
+	}
+
+	return playerName;
+}
+
 string ApplyNameTemplate(string& nameTemplate, Match& match, int* matchIndex)
 {
 	// Get date string
@@ -48,9 +63,11 @@ string ApplyNameTemplate(string& nameTemplate, Match& match, int* matchIndex)
 	auto winloss = won ? string("Win") : string("Loss");
 	auto wl = won ? string("W") : string("L");
 
+	string playerName = SanitizePlayerName(match.PrimaryPlayer.Name, "Player");
+
 	string name = nameTemplate;
 	ReplaceAll(name, "{MODE}", match.GameMode);
-	ReplaceAll(name, "{PLAYER}", match.PrimaryPlayer.Name);
+	ReplaceAll(name, "{PLAYER}", playerName);
 	ReplaceAll(name, "{UNIQUEID}", to_string(match.PrimaryPlayer.UniqueId));
 	ReplaceAll(name, "{WINLOSS}", winloss);
 	ReplaceAll(name, "{WL}", wl);
