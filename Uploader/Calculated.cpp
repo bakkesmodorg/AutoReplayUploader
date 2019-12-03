@@ -50,7 +50,7 @@ void Calculated::UploadReplay(string replayPath, string replayFileName, string p
 
 	string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
 
-	string destPath = "./bakkesmod/data/calculated/" + replayFileName + ".replay";
+	string destPath = "./bakkesmod/data/calculated/temp.replay";
 	CreateDirectory("./bakkesmod/data/calculated", NULL);
 	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 

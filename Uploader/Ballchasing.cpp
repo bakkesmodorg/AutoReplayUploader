@@ -63,9 +63,14 @@ void Ballchasing::UploadReplay(string replayPath, string replayFileName)
 		return;
 	}
 
-	string destPath = "./bakkesmod/data/ballchasing/" + replayFileName + ".replay";
+	string destPath = "./bakkesmod/data/ballchasing/temp.replay";
 	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
-	CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+
+	Log(Client, "ReplayPath: " + replayPath);
+	Log(Client, "ReplayFileName: " + replayFileName);
+	Log(Client, "DestPath: " + destPath);
+	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = AppendGetParams("https://ballchasing.com/api/v2/upload", { {"visibility", *visibility} });
