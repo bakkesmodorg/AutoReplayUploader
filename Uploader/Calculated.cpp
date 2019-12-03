@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define CALCULATED_ENDPOINT_URL "https://us-east1-calculatedgg-217303.cloudfunctions.net/parse_replay"
+#define CALCULATED_ENDPOINT_URL  "https://us-east1-calculatedgg-217303.cloudfunctions.net/queue_replay"
 
 Calculated::Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
 {
