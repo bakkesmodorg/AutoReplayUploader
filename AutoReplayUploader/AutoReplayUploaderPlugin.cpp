@@ -1,5 +1,6 @@
 #include "AutoReplayUploaderPlugin.h"
 
+#include <chrono>
 #include <sstream>
 #include <utils/io.h>
 
@@ -35,6 +36,7 @@ string GetPlaylistName(int playlistId);
 Match backupMatchForReplayName;
 bool needToUploadReplay = false;
 string backupPlayerSteamID = "";
+std::chrono::time_point<std::chrono::steady_clock> pluginLoadTime;
 
 void Log(void* object, string message)
 {
@@ -90,6 +92,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	stringstream userAgentStream;
 	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
 	string userAgent = userAgentStream.str();
+
+	pluginLoadTime = chrono::steady_clock::now();
 
 	// Setup upload handlers
 	ballchasing = new Ballchasing(userAgent, &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
@@ -169,8 +173,16 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 		if (ballchasing->authKey->size() > 0 &&         // We don't test the auth key if the size of the auth key is empty
 			ballchasing->authKey->compare(oldVal) != 0) // We don't test unless the value has changed
 		{
-			// value changed so test auth key
-			ballchasing->TestAuthKey();
+			auto elapsed = chrono::steady_clock::now() - pluginLoadTime;
+			if (chrono::duration_cast<chrono::milliseconds>(elapsed) < chrono::milliseconds(5000))
+			{
+				cvarManager->log("Not checking auth key since plugin was loaded recently");
+			}
+			else
+			{
+				// value changed so test auth key
+				ballchasing->TestAuthKey();
+			}
 		}
 	});
 
