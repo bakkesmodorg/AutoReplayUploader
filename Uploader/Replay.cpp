@@ -6,12 +6,17 @@
 #include <iomanip>
 
 #include "Utils.h"
+#include <regex>
+
+const std::regex illegalPathChars("[*?\"<>|]");
+const std::regex illegalReplayChars("[\\\\/:*?\"<>|]");
+const std::regex illegalNameChars("[\\\\/:*?\"<>|]");
+
 
 bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string defaultValue)
 {
 	// Remove illegal characters for filename
-	vector<char> illegalChars{ '\\', '/', ':', '*', '?', '\"', '<', '>', '|' };
-	bool changed = RemoveChars(replayNameTemplate, illegalChars, false);
+	bool changed = RemoveChars(replayNameTemplate, illegalReplayChars);
 
 	// If empty use default
 	if (replayNameTemplate->empty())
@@ -26,8 +31,7 @@ bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string de
 string SanitizePlayerName(string playerName, string defaultValue)
 {
 	// Remove illegal characters for filename
-	vector<char> illegalChars{ '\\', '/', ':', '*', '?', '\"', '<', '>', '|' };
-	RemoveChars(playerName, illegalChars, false);
+	RemoveChars(playerName, illegalNameChars);
 
 	// If empty use default
 	if (playerName.empty())
@@ -95,8 +99,7 @@ bool SanitizeExportPath(shared_ptr<string> exportPath, string defaultValue)
 	}
 
 	// Remove illegal characters for folder path
-	vector<char> illegalChars{ '*', '?', '\"', '<', '>', '|' };
-	bool changed = RemoveChars(exportPath, illegalChars, false);
+	bool changed = RemoveChars(exportPath, illegalPathChars);
 	if (exportPath->empty()) { *exportPath = defaultValue;  return true; }
 
 	// Replaces \ with /
