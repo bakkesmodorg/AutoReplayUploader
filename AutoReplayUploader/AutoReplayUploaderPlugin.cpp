@@ -1,19 +1,16 @@
 #include "AutoReplayUploaderPlugin.h"
 
-#include <chrono>
 #include <sstream>
-#include <utils/io.h>
 
 #include "bakkesmod/wrappers/GameEvent/ReplayWrapper.h"
 #include "bakkesmod/wrappers/GameEvent/ReplayDirectorWrapper.h"
 #include "bakkesmod/wrappers/GameEvent/ReplaySoccarWrapper.h"
 
-#include "Utils.h"
-#include "Ballchasing.h"
-#include "Calculated.h"
 #include "Match.h"
 #include "Player.h"
 #include "Replay.h"
+#include "IReplay.h"
+#include "Plugin.h"
 
 using namespace std;
 
@@ -32,21 +29,15 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.2",
 #define CVAR_BALLCHASING_REPLAY_VISIBILITY "cl_autoreplayupload_ballchasing_visibility"
 #define CVAR_CALCULATED_REPLAY_VISIBILITY "cl_autoreplayupload_calculated_visibility"
 
-string GetPlaylistName(int playlistId);
-Match backupMatchForReplayName;
-bool needToUploadReplay = false;
-string backupPlayerSteamID = "";
-std::chrono::time_point<std::chrono::steady_clock> pluginLoadTime;
-
 void Log(void* object, string message)
 {
 	auto plugin = (AutoReplayUploaderPlugin*)object;
 	plugin->cvarManager->log(message);
 }
 
-void UploadComplete(AutoReplayUploaderPlugin* plugin, bool result, string endpoint)
+void UploadComplete(void* object, bool result, string endpoint)
 {
-#ifdef TOAST
+	AutoReplayUploaderPlugin* plugin = (AutoReplayUploaderPlugin*)object;
 	if (*(plugin->showNotifications)) {
 		std::string message = "Uploaded replay to " + endpoint + " successfully!";
 		std::string logo_to_use = endpoint + "_logo";
@@ -62,7 +53,6 @@ void UploadComplete(AutoReplayUploaderPlugin* plugin, bool result, string endpoi
 		}
 		plugin->gameWrapper->Toast("Autoreplayuploader", message, logo_to_use, 3.5f, toastType);
 	}
-#endif
 }
 
 void CalculatedUploadComplete(void* object, bool result)
@@ -82,8 +72,6 @@ void BallchasingAuthTestComplete(void* object, bool result)
 	plugin->cvarManager->getCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT).setValue(msg);
 }
 
-#pragma region AutoReplayUploaderPlugin Implementation
-
 /**
 * OnLoad event called when the plugin is loaded by BakkesMod
 */
@@ -93,14 +81,14 @@ void AutoReplayUploaderPlugin::onLoad()
 	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
 	string userAgent = userAgentStream.str();
 
-	pluginLoadTime = chrono::steady_clock::now();
-
 	// Setup upload handlers
 	ballchasing = new Ballchasing(userAgent, &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
 	calculated = new Calculated(userAgent, &Log, &CalculatedUploadComplete, this);
 
-	InitializeVariables();
+	// Setup plugin
+	plugin = new Plugin(&Log, this, (IReplayUploader*)ballchasing, (IReplayUploader*)calculated);
 
+	InitializeVariables();
 
 	// Register for Game ending event	
 	gameWrapper->HookEventWithCaller<ServerWrapper>(
@@ -139,10 +127,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	);
 
 	// Initialize notification plugin assets
-#ifdef TOAST
 	gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
 	gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
-#endif
 }
 
 /**
@@ -152,326 +138,50 @@ void AutoReplayUploaderPlugin::onUnload()
 {
 	delete ballchasing;
 	delete calculated;
+	delete plugin;
 }
 
 void AutoReplayUploaderPlugin::InitializeVariables()
 {
-	// Set the default status of uploading replay to false
-	needToUploadReplay = false;
- 
 	// Calculated variables
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(uploadToCalculated);		
-	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, "DEFAULT", "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, true).bindTo(calculated->visibility);
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_CALCULATED, "0", "Upload to replays to calculated.gg automatically", true, true, 0, true, 1).bindTo(plugin->uploadToBallchasing);		
+	cvarManager->registerCvar(CVAR_CALCULATED_REPLAY_VISIBILITY, CALCULATED_DEFAULT_REPLAY_VISIBILITY, "Replay visibility when uploading to calculated.gg", false, false, 0, false, 0, true).bindTo(calculated->visibility);
 
 	// Ball Chasing variables	
-	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
-	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
-	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
-	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(plugin->uploadToBallchasing);
+	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, BALLCHASING_DEFAULT_REPLAY_VISIBILITY, "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
+	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, BALLCHASING_DEFAULT_AUTH_TEST_RESULT, "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
+	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, BALLCHASING_DEFAULT_AUTH_KEY, "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
 	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{   
-		if (ballchasing->authKey->size() > 0 &&         // We don't test the auth key if the size of the auth key is empty
-			ballchasing->authKey->compare(oldVal) != 0) // We don't test unless the value has changed
-		{
-			auto elapsed = chrono::steady_clock::now() - pluginLoadTime;
-			if (chrono::duration_cast<chrono::milliseconds>(elapsed) < chrono::milliseconds(5000))
-			{
-				cvarManager->log("Not checking auth key since plugin was loaded recently");
-			}
-			else
-			{
-				// value changed so test auth key
-				ballchasing->TestAuthKey();
-			}
-		}
+		ballchasing->OnBallChasingAuthKeyChanged(oldVal);
 	});
 
 	// Replay Name template variables
-	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
-	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, DEFAULT_REPLAY_NAME_TEMPLATE, "Template for in game name of replay", true, true, 0, true, 0, true).bindTo(replayNameTemplate);
+	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(plugin->templateSequence);
+	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, DEFAULT_REPLAY_NAME_TEMPLATE, "Template for in game name of replay", true, true, 0, true, 0, true).bindTo(plugin->replayNameTemplate);
 	cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
-		if (SanitizeReplayNameTemplate(replayNameTemplate, DEFAULT_REPLAY_NAME_TEMPLATE))
+		if (SanitizeReplayNameTemplate(plugin->replayNameTemplate, DEFAULT_REPLAY_NAME_TEMPLATE))
 		{
-			cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).setValue(*replayNameTemplate);
+			cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).setValue(*(plugin->replayNameTemplate));
 		}
 	});
 
 	// Path to export replays to
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(plugin->saveReplay);
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(plugin->exportPath);
 	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
-		if (SanitizeExportPath(exportPath, DEAULT_EXPORT_PATH))
+		if (SanitizeExportPath(plugin->exportPath, DEAULT_EXPORT_PATH))
 		{
-			cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).setValue(*exportPath);
+			cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).setValue(*(plugin->exportPath));
 		}
 	});
 
-#ifdef TOAST
 	// Notification variables
 	cvarManager->registerCvar(CVAR_PLUGIN_SHOW_NOTIFICATIONS, "1", "Show notifications on successful uploads", true, true, 0, true, 1).bindTo(showNotifications);
-#endif
 }
-
-/**
-* OnGameComplete event called when on Function TAGame.GameEvent_Soccar_TA.EventMatchEnded event when an online game ends.
-* Params:
-*	caller - ServerWraper this event was called from
-*	params - Event parameters
-*	eventName - Event name
-*/
-void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, string eventName)
-{
-	if (!*uploadToCalculated && !*uploadToBallchasing) // Bail if we aren't uploading replays
-	{
-		return; //Not uploading replays
-	}
-
-    if (needToUploadReplay == false) {
-		// Replay might have already been saved by Function TAGame.GameEvent_Soccar_TA.EventMatchEnded
-		// event if the player stayed in the game long enough. Or we are leaving freeplay, 
-		// custom training, etc instead of online game and will not proceed to upload anything.
-    	return;
-    } else {
-    	// Since the needToUploadReplay was true, we have just finished an online game and this is
-    	// the first time uploading is requested. We will flag that the upload process has 
-    	// now been started and will continue to upload the replay.
-    	needToUploadReplay = false;
-		cvarManager->log("Uploading replay started: " + eventName);
-	}
-
-	// Get ReplayDirector
-	ReplayDirectorWrapper replayDirector = caller.GetReplayDirector();
-	if (replayDirector.IsNull())
-	{
-		cvarManager->log("Could not upload replay, director is NULL!");
-		return;
-	}
-
-	// Get Replay wrapper
-	ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
-	if (soccarReplay.memory_address == NULL)
-	{
-		cvarManager->log("Could not upload replay, replay is NULL!");
-		return;
-	}
-	soccarReplay.StopRecord();
-	
-	// If we have a template for the replay name then set the replay name based off that template else use default template
-	string replayName = SetReplayName(caller, soccarReplay);
-	
-
-	// Export the replay to a file for upload
-	string replayPath = ExportReplay(soccarReplay, replayName);
-
-	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
-	// the steamID might not be available. Using prestored steamID
-    string playerSteamID = to_string(gameWrapper->GetSteamID());
-    if (playerSteamID.length() < 1) {
-    	playerSteamID = backupPlayerSteamID;
-		cvarManager->log("Using backup steamId to upload: " + playerSteamID);
-    } else {
-		cvarManager->log("Using steamId to upload: " + playerSteamID);
-    }
-
-	// Upload replay
-	if (*uploadToCalculated)
-	{
-		calculated->UploadReplay(replayPath, playerSteamID);
-	}
-	if (*uploadToBallchasing)
-	{
-		ballchasing->UploadReplay(replayPath);
-	}
-
-	// If we aren't saving the replay remove it after we've uploaded
-	if ((*saveReplay) == false)
-	{
-		cvarManager->log("Removing replay file: " + replayPath);
-		remove(replayPath.c_str());
-	}
-#ifdef TOAST
-	else if(*showNotifications)
-	{
-		bool exported = file_exists(replayPath);
-		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
-		gameWrapper->Toast("Autoreplayuploader", msg, "default", 3.5f, exported ? ToastType_OK : ToastType_Error);
-	}
-#endif
-}
-
-Player ConstructPlayer(PriWrapper wrapper)
-{
-	Player p;
-	if (!wrapper.IsNull()) 
-	{
-		p.Name = wrapper.GetPlayerName().ToString();
-		p.UniqueId = wrapper.GetUniqueId().ID;
-		p.Team = wrapper.GetTeamNum();
-		p.Score = wrapper.GetScore();
-		p.Goals = wrapper.GetMatchGoals();
-		p.Assists = wrapper.GetMatchAssists();
-		p.Saves = wrapper.GetMatchSaves();
-		p.Shots = wrapper.GetMatchShots();
-		p.Demos = wrapper.GetMatchDemolishes();
-	}
-	return p;
-}
-
-void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void * params, string eventName)
-{
-    /*****************************************************************************************
-    * This function will save primary player userdata at the start of any online game. There *
-    * are now number of different events that will try to upload the replays after matches.  *
-    * This is needed to make the replay uploads more reliable no matter how fast or slow you *
-    * leave the current game.  In some cases the player data might not be anymore available  * 
-    * when uploading the replay, and that is why we save it in at start of the match.        *
-    *****************************************************************************************/
-	
-	//Function GameEvent_Soccar_TA.Active.StartRound -event will fire in all modes
-	//like freeplay, custom training etc. Set the needToUploadReplay flag replay only 
-	//if we are in an online game.
-	if (gameWrapper->IsInOnlineGame()) {
-	    needToUploadReplay = true;
-	} else {
-		//If we are not in online game, we are in freeplay, custom training etc
-		// We will set the needToUploadReplay flag to false and no need to save the player data.
-	    needToUploadReplay = false;
-	    return;
-	}
-	
-	// We are in online game and now storing some important player data, if needed after the game
-	// When uploading the replay.
-	backupPlayerSteamID = to_string(gameWrapper->GetSteamID());
-
-    CarWrapper mycar = gameWrapper->GetLocalCar();
-    if (!mycar.IsNull()) {
-        PriWrapper mycarpri = mycar.GetPRI();
-        if (!mycarpri.IsNull()) {
-               backupMatchForReplayName.PrimaryPlayer = ConstructPlayer(mycarpri);
-        }
-    }
-
-	cvarManager->log("StartRound: Stored userdata for:" + backupMatchForReplayName.PrimaryPlayer.Name);
-}
-
-
-/**
-* SetReplayName - Called to set the name of the replay in the replay file.
-* Params:
-*	server - ServerWrapper
-*	soccarReplay - Replay to set name of
-*	replayName - A templatized string that accepts the following tokens for replacement.
-*		{PLAYER} - Name of current steam user
-*		{MODE} - Game mode of replay (Private, Ranked Standard, etc...)
-*		{NUM} - Current sequence number to allow for uniqueness
-*		{YEAR} - Year since 1900 % 100, eg. 2019 returns 19
-*		{MONTH} - Month 1-12
-*		{DAY} - Day of the month 1-31
-*		{HOUR} - Hour of the day 0-23
-*		{MIN} - Min of the hour 0-59
-*		{WL} - W or L depending on if the player won or lost
-*		{WINLOSS} - Win or Loss depending on if the player won or lost
-*/
-string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay)
-{
-	string replayName = *replayNameTemplate;
-	cvarManager->log("Using replay name template: " + replayName);
-
-	Match match;
-
-	// Get Gamemode game was in
-	auto playlist = server.GetPlaylist();
-	if (playlist.memory_address != NULL)
-	{
-		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
-	}
-	// Get local primary player
-	CarWrapper mycar = gameWrapper->GetLocalCar();
-	if (!mycar.IsNull()) 
-	{
-		PriWrapper mycarpri = mycar.GetPRI();
-		if (!mycarpri.IsNull()) 
-		{
-			match.PrimaryPlayer = ConstructPlayer(mycarpri);
-		}
-	}
-
-	// If upload game was initiated by event Function TAGame.GameEvent_Soccar_TA.Destroyed
-	// it is very likely that the primary player data can not be anymore fetched.
-	// That's why we saved this data in Function GameEvent_Soccar_TA.Active.StartRound -event
-	// and will use it, if needed, to get correct player for the game being uploaded.
-	if (match.PrimaryPlayer.Name.length() < 1 && backupMatchForReplayName.PrimaryPlayer.Name.length() > 0)
-	{
-		cvarManager->log("Using prerecorder username for replay: " + backupMatchForReplayName.PrimaryPlayer.Name);
-		match.PrimaryPlayer.Name = backupMatchForReplayName.PrimaryPlayer.Name;
-		match.PrimaryPlayer.UniqueId = backupMatchForReplayName.PrimaryPlayer.UniqueId;
-		match.PrimaryPlayer.Team = backupMatchForReplayName.PrimaryPlayer.Team;
-	}
-
-	// Get all players
-	auto players = server.GetLocalPlayers();
-	for (int i = 0; i < players.Count(); i++)
-	{
-		match.Players.push_back(ConstructPlayer(players.Get(i).GetPRI()));
-	}
-
-	// Get Team scores
-	match.Team0Score = soccarReplay.GetTeam0Score();
-	match.Team1Score = soccarReplay.GetTeam1Score();
-
-	// Get current Sequence number
-	auto seq = *templateSequence;
-
-	replayName = ApplyNameTemplate(replayName, match, &seq);
-
-	// Did sequence number change if so update setting
-	if (seq != *templateSequence)
-	{
-		*templateSequence = seq;
-		cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(seq);
-		cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
-	}
-
-	cvarManager->log("ReplayName: " + replayName);
-	soccarReplay.SetReplayName(replayName);
-
-	return replayName;
-}
-
-string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
-{
-	string replayPath = CalculateReplayPath(*exportPath, replayName);
-
-	// Remove file if it already exists
-	if (file_exists(replayPath))
-	{
-		cvarManager->log("Removing duplicate replay file: " + replayPath);
-		remove(replayPath.c_str());
-	}
-
-	// Export Replay
-	
-	soccarReplay.ExportReplay(replayPath);
-	cvarManager->log("Exported replay to: " + replayPath);
-
-	// Check to see if replay exists, if not then export to default path
-	if (!file_exists(replayPath))
-	{
-		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path.");
-		replayPath = string(DEAULT_EXPORT_PATH) + "autosaved.replay";
-
-		soccarReplay.ExportReplay(replayPath);
-		cvarManager->log("Exported replay to: " + replayPath);
-	}
-
-	return replayPath;
-}
-
-#pragma endregion
-
-#pragma region Utility Functions
 
 string GetPlaylistName(int playlistId) {
 	switch (playlistId) {
@@ -526,4 +236,122 @@ string GetPlaylistName(int playlistId) {
 	}
 }
 
-#pragma endregion
+Player ConstructPlayer(PriWrapper wrapper)
+{
+	Player p;
+	if (!wrapper.IsNull())
+	{
+		p.Name = wrapper.GetPlayerName().ToString();
+		p.UniqueId = wrapper.GetUniqueId().ID;
+		p.Team = wrapper.GetTeamNum();
+		p.Score = wrapper.GetScore();
+		p.Goals = wrapper.GetMatchGoals();
+		p.Assists = wrapper.GetMatchAssists();
+		p.Saves = wrapper.GetMatchSaves();
+		p.Shots = wrapper.GetMatchShots();
+		p.Demos = wrapper.GetMatchDemolishes();
+	}
+	return p;
+}
+
+Match GetMatch(void* serverWrapper, IReplay* replay)
+{
+	auto server = (ServerWrapper*)serverWrapper;
+	Match match;
+
+	// Get Gamemode game was in
+	auto playlist = server->GetPlaylist();
+	if (playlist.memory_address != NULL)
+	{
+		match.GameMode = GetPlaylistName(playlist.GetPlaylistId());
+	}
+	// Get local primary player
+	CarWrapper mycar = server->GetLocalPrimaryPlayer().GetCar();
+	if (!mycar.IsNull())
+	{
+		PriWrapper mycarpri = mycar.GetPRI();
+		if (!mycarpri.IsNull())
+		{
+			match.PrimaryPlayer = ConstructPlayer(mycarpri);
+		}
+	}
+
+	// Get all players
+	auto players = server->GetLocalPlayers();
+	for (int i = 0; i < players.Count(); i++)
+	{
+		match.Players.push_back(ConstructPlayer(players.Get(i).GetPRI()));
+	}
+
+	// Get Team scores
+	match.Team0Score = replay->GetTeam0Score();
+	match.Team1Score = replay->GetTeam1Score();
+
+	return match;
+}
+
+Player GetPrimaryPlayer(void* gameWrapper)
+{
+	auto server = (GameWrapper*)gameWrapper;
+	CarWrapper mycar = server->GetLocalCar();
+	if (!mycar.IsNull())
+	{
+		PriWrapper mycarpri = mycar.GetPRI();
+		if (!mycarpri.IsNull())
+		{
+			return ConstructPlayer(mycarpri);
+		}
+	}
+	return Player();
+}
+
+class WrappedReplay : IReplay
+{
+private:
+	ReplaySoccarWrapper* replay;
+
+public:
+
+	WrappedReplay(ReplaySoccarWrapper* wrapper)
+	{
+		replay = wrapper;
+	}
+
+	virtual int GetTeam0Score() { return replay->GetTeam0Score(); }
+	virtual int GetTeam1Score() { return replay->GetTeam1Score(); }
+	virtual void ExportReplay(string replayPath) { replay->ExportReplay(replayPath); };
+	virtual void SetReplayName(string replayName) { replay->SetReplayName(replayName);  };
+};
+
+IReplay* GetReplay(void* serverWrapper, void(*Log)(void* object, string message), void* object)
+{
+	ServerWrapper* caller = (ServerWrapper*)serverWrapper;
+
+	// Get ReplayDirector
+	ReplayDirectorWrapper replayDirector = caller->GetReplayDirector();
+	if (replayDirector.IsNull())
+	{
+		Log(object, "Could not upload replay, director is NULL!");
+		return nullptr;
+	}
+
+	// Get Replay wrapper
+	ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
+	if (soccarReplay.memory_address == NULL)
+	{
+		Log(object, "Could not upload replay, replay is NULL!");
+		return nullptr;
+	}
+	soccarReplay.StopRecord();
+	return (IReplay*)new WrappedReplay(&soccarReplay);
+}
+
+void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void* params, string eventName)
+{
+	plugin->OnGameComplete(eventName, (void*)&caller, GetReplay, GetMatch);
+}
+
+void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, string eventName)
+{
+	plugin->GetPlayerData(eventName, (void*)&caller, gameWrapper->IsInOnlineGame(), GetPrimaryPlayer);
+}

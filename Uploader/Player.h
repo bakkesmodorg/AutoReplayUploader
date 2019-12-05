@@ -8,7 +8,7 @@ class Player
 {
 public:
 	string Name;
-	unsigned long long UniqueId;
+	unsigned long long UniqueId = 0;
 	int Team;
 
 	int Score;
