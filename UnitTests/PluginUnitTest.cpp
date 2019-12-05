@@ -3,7 +3,7 @@
 
 #include "Plugin.h"
 #include <iostream>
-
+#include <fstream>
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
 
@@ -11,8 +11,6 @@ using namespace std;
 
 namespace UnitTests
 {
-	IReplay* replay;
-
 	void Log(void* object, string message)
 	{
 		cout << message << endl;
@@ -28,6 +26,42 @@ namespace UnitTests
 			numUploadInvoked++;
 		}
 	};
+
+	class MockReplay : IReplay
+	{
+	public:
+		bool FailExportOnFirstCall = false;
+		int ExportReplayCalled = 0;
+		string replayPath = "";
+
+		int SetReplayNameCalled = 0;
+		string replayName = "";
+
+		void ExportReplay(string replayPath)
+		{
+			this->replayPath = replayPath;
+			this->ExportReplayCalled++;
+
+			if (!(ExportReplayCalled == 1 && FailExportOnFirstCall))
+			{
+				ofstream myfile;
+				myfile.open(replayPath, ios::out);
+				if (myfile.is_open())
+				{
+					myfile << "Writing this to a file.\n";
+					myfile.close();
+				}
+			}
+		};
+
+		void SetReplayName(string replayName)
+		{
+			this->replayName = replayName;
+			this->SetReplayNameCalled++;
+		};
+	};
+
+	IReplay* replay;
 
 	TEST_CLASS(PluginUnitTest)
 	{
@@ -91,8 +125,11 @@ namespace UnitTests
 			Plugin plugin(Log, this, (IReplayUploader*)ballchasing, (IReplayUploader*)calculated);
 			*plugin.uploadToBallchasing = true;
 			*plugin.uploadToCalculated = true;
+			*plugin.exportPath = "./";
+
 			plugin.needToUploadReplay = true;
-			replay = new IReplay();
+			auto mockReplay = new MockReplay();
+			replay = (IReplay*)mockReplay;
 
 			plugin.OnGameComplete(
 				"test",
@@ -109,6 +146,81 @@ namespace UnitTests
 
 			Assert::AreEqual(1, ballchasing->numUploadInvoked);
 			Assert::AreEqual(1, calculated->numUploadInvoked);
+
+			Assert::AreEqual(1, mockReplay->SetReplayNameCalled);
+			Assert::AreEqual(1, mockReplay->ExportReplayCalled);
+		}
+
+		TEST_METHOD(AllUpload_GameComplete_FirstExportFails)
+		{
+			auto ballchasing = new MockUploader();
+			auto calculated = new MockUploader();
+
+			Plugin plugin(Log, this, (IReplayUploader*)ballchasing, (IReplayUploader*)calculated);
+			*plugin.uploadToBallchasing = true;
+			*plugin.uploadToCalculated = true;
+			*plugin.exportPath = "./";
+
+			plugin.needToUploadReplay = true;
+			auto mockReplay = new MockReplay();
+			mockReplay->FailExportOnFirstCall = true;
+			replay = (IReplay*)mockReplay;
+
+			plugin.OnGameComplete(
+				"test",
+				this,
+				[](void* serverWrapper, void(*Log)(void* object, string message), void* object) -> IReplay*
+				{
+					return replay;
+				},
+				[](void* serverWrapper, IReplay* replay) -> Match
+				{
+					Match m;
+					return m;
+				});
+
+			Assert::AreEqual(1, ballchasing->numUploadInvoked);
+			Assert::AreEqual(1, calculated->numUploadInvoked);
+
+			Assert::AreEqual(1, mockReplay->SetReplayNameCalled);
+			Assert::AreEqual(2, mockReplay->ExportReplayCalled);
+		}
+
+		TEST_METHOD(AllUpload_GameComplete_UseTemplateSequence)
+		{
+			auto ballchasing = new MockUploader();
+			auto calculated = new MockUploader();
+
+			Plugin plugin(Log, this, (IReplayUploader*)ballchasing, (IReplayUploader*)calculated);
+			*plugin.uploadToBallchasing = true;
+			*plugin.uploadToCalculated = true;
+			*plugin.exportPath = "./";
+			*plugin.replayNameTemplate = "{NUM}";
+
+			plugin.needToUploadReplay = true;
+			auto mockReplay = new MockReplay();
+			replay = (IReplay*)mockReplay;
+
+			plugin.OnGameComplete(
+				"test",
+				this,
+				[](void* serverWrapper, void(*Log)(void* object, string message), void* object) -> IReplay*
+				{
+					return replay;
+				},
+				[](void* serverWrapper, IReplay* replay) -> Match
+				{
+					Match m;
+					return m;
+				});
+
+			Assert::AreEqual(1, ballchasing->numUploadInvoked);
+			Assert::AreEqual(1, calculated->numUploadInvoked);
+
+			Assert::AreEqual(1, mockReplay->SetReplayNameCalled);
+			Assert::AreEqual(1, mockReplay->ExportReplayCalled);
+
+			Assert::AreEqual(1, *plugin.templateSequence);
 		}
 	};
 }
