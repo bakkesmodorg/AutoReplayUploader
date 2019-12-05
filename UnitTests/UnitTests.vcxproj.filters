@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{2ea1b08f-21b4-40c4-a5e1-e85c89ff15d8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -27,7 +30,13 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ExportPathUnitTest.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplyNameTemplateUnitTest.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="SanitizePlayerNameUnitTest.cpp">
+      <Filter>Tests</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
