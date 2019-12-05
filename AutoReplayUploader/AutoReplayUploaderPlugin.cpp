@@ -349,6 +349,9 @@ IReplay* GetReplay(void* serverWrapper, void(*Log)(void* object, string message)
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void* params, string eventName)
 {
 	plugin->OnGameComplete(eventName, (void*)&caller, GetReplay, GetMatch);
+
+	cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(*(plugin->templateSequence));
+	cvarManager->executeCommand("writeconfig");
 }
 
 void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, string eventName)

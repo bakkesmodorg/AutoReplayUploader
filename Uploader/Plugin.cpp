@@ -31,9 +31,6 @@ string Plugin::SetReplayName(IReplay* replay, Match& match)
 	if (seq != *templateSequence)
 	{
 		*templateSequence = seq;
-		// TODO: FIX THIS
-		//cvarManager->getCvar(CVAR_REPLAY_SEQUENCE_NUM).setValue(seq);
-		//cvarManager->executeCommand("writeconfig"); // since we change this variable ourselves we want to write the config when it changes so it persists across loads
 	}
 
 	this->Log(this->Client, "ReplayName: " + replayName);
