@@ -24,14 +24,14 @@ private:
 	IReplayUploader* ballchasing;
 	IReplayUploader* calculated;
 
-	bool needToUploadReplay = false;
-
 	string SetReplayName(IReplay* replay, Match& match);
 	string ExportReplay(IReplay* replay, string& replayName);
 
 	Player BackupPlayer;
 
 public:
+	bool needToUploadReplay = false;
+
 	shared_ptr<bool> uploadToCalculated = make_shared<bool>(false);
 	shared_ptr<bool> uploadToBallchasing = make_shared<bool>(false);
 
