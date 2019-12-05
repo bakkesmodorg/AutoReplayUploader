@@ -9,6 +9,6 @@ private:
 
 public:
 	IReplayUploader() {}
-	void UploadReplay(string replayPath, string playerId) {}
+	virtual void UploadReplay(string replayPath, string playerId) {}
 
 };

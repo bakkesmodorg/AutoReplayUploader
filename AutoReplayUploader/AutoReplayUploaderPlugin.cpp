@@ -308,42 +308,32 @@ Player GetPrimaryPlayer(void* gameWrapper)
 class WrappedReplay : IReplay
 {
 private:
-	ReplaySoccarWrapper* replay;
+	ServerWrapper* caller;
+	ReplaySoccarWrapper GetReplay()
+	{
+		ReplayDirectorWrapper replayDirector = caller->GetReplayDirector();
+		ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
+		soccarReplay.StopRecord();
+		return soccarReplay;
+	}
 
 public:
 
-	WrappedReplay(ReplaySoccarWrapper* wrapper)
+	WrappedReplay(ServerWrapper* caller)
 	{
-		replay = wrapper;
+		this->caller = caller;
 	}
 
-	virtual int GetTeam0Score() { return replay->GetTeam0Score(); }
-	virtual int GetTeam1Score() { return replay->GetTeam1Score(); }
-	virtual void ExportReplay(string replayPath) { replay->ExportReplay(replayPath); };
-	virtual void SetReplayName(string replayName) { replay->SetReplayName(replayName);  };
+	virtual int GetTeam0Score() { return GetReplay().GetTeam0Score(); }
+	virtual int GetTeam1Score() { return GetReplay().GetTeam1Score(); }
+	virtual void ExportReplay(string replayPath) { GetReplay().ExportReplay(replayPath); };
+	virtual void SetReplayName(string replayName) { GetReplay().SetReplayName(replayName);  };
 };
 
 IReplay* GetReplay(void* serverWrapper, void(*Log)(void* object, string message), void* object)
 {
 	ServerWrapper* caller = (ServerWrapper*)serverWrapper;
-
-	// Get ReplayDirector
-	ReplayDirectorWrapper replayDirector = caller->GetReplayDirector();
-	if (replayDirector.IsNull())
-	{
-		Log(object, "Could not upload replay, director is NULL!");
-		return nullptr;
-	}
-
-	// Get Replay wrapper
-	ReplaySoccarWrapper soccarReplay = replayDirector.GetReplay();
-	if (soccarReplay.memory_address == NULL)
-	{
-		Log(object, "Could not upload replay, replay is NULL!");
-		return nullptr;
-	}
-	soccarReplay.StopRecord();
-	return (IReplay*)new WrappedReplay(&soccarReplay);
+	return (IReplay*)new WrappedReplay(caller);
 }
 
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void* params, string eventName)
@@ -356,5 +346,5 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void* params
 
 void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, string eventName)
 {
-	plugin->GetPlayerData(eventName, (void*)&caller, gameWrapper->IsInOnlineGame(), GetPrimaryPlayer);
+	plugin->GetPlayerData(eventName, (void*)&(*gameWrapper), gameWrapper->IsInOnlineGame(), GetPrimaryPlayer);
 }

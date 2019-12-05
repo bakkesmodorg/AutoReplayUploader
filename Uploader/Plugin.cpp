@@ -43,6 +43,8 @@ string Plugin::ExportReplay(IReplay* replay, string& replayName)
 {
 	string replayPath = CalculateReplayPath(*exportPath, replayName);
 
+	this->Log(this->Client, "ReplayPath: " + replayPath);
+
 	// Remove file if it already exists
 	if (file_exists(replayPath))
 	{
@@ -110,11 +112,21 @@ void Plugin::OnGameComplete(string eventName, void* serverWrapper, IReplay* (*Ge
 	string playerId = to_string(match.PrimaryPlayer.UniqueId);
 	if (*uploadToCalculated)
 	{
+		this->Log(this->Client, "Uploading to calculated");
 		calculated->UploadReplay(replayPath, playerId);
+	}
+	else
+	{
+		this->Log(this->Client, "NOT Uploading to calculated");
 	}
 	if (*uploadToBallchasing)
 	{
+		this->Log(this->Client, "Uploading to ballchasing");
 		ballchasing->UploadReplay(replayPath, playerId);
+	}
+	else
+	{
+		this->Log(this->Client, "NOT Uploading to ballchasing");
 	}
 
 	if ((*saveReplay) == false)
