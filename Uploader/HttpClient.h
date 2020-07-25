@@ -4,10 +4,10 @@
 #pragma comment(lib, "Wldap32.Lib")
 #pragma comment(lib, "Crypt32.Lib")
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "libssl.lib")
+#pragma comment(lib, "libssl_static.lib")
 #pragma comment(lib, "Wldap32.lib")
 #pragma comment(lib, "Normaliz.lib")
-#pragma comment(lib, "libcurl_a.lib")
+#pragma comment(lib, "libcurl.lib")
 #pragma comment(lib, "curlpp.lib")
 #include <windows.h>
 #include <Shlobj_core.h>
