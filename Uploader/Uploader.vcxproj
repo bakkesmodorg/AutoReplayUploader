@@ -23,6 +23,7 @@
     <ClInclude Include="Calculated.h" />
     <ClInclude Include="HttpClient.h" />
     <ClInclude Include="Match.h" />
+    <ClInclude Include="MMRData.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Replay.h" />
     <ClInclude Include="Utils.h" />
@@ -32,6 +33,7 @@
     <ClCompile Include="Calculated.cpp" />
     <ClCompile Include="HttpClient.cpp" />
     <ClCompile Include="Match.cpp" />
+    <ClCompile Include="MMRData.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Replay.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -131,7 +133,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>

@@ -48,6 +48,7 @@ public:
 	
 	void GetPlayerData(ServerWrapper caller, void* params, string eventName);
 	void OnGameComplete(ServerWrapper caller, void* params, string eventName);
+	void OnMMRSync();
 
 #ifdef TOAST
 	shared_ptr<bool> showNotifications = make_shared<bool>(true);

@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include <sstream>
-#include <utils/io.h>
+#include "utils/io.h"
 
 #include "bakkesmod/wrappers/GameEvent/ReplayWrapper.h"
 #include "bakkesmod/wrappers/GameEvent/ReplayDirectorWrapper.h"
@@ -14,6 +14,8 @@
 #include "Match.h"
 #include "Player.h"
 #include "Replay.h"
+
+#include "bakkesmod/wrappers/wrapperstructs.h"
 
 using namespace std;
 
@@ -32,11 +34,72 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.2",
 #define CVAR_BALLCHASING_REPLAY_VISIBILITY "cl_autoreplayupload_ballchasing_visibility"
 #define CVAR_CALCULATED_REPLAY_VISIBILITY "cl_autoreplayupload_calculated_visibility"
 
+Player ConstructPlayer(PriWrapper wrapper)
+{
+	Player p;
+	if (!wrapper.IsNull())
+	{
+		p.Name = wrapper.GetPlayerName().ToString();
+		p.UniqueId = wrapper.GetUniqueId().ID;
+		p.Team = wrapper.GetTeamNum();
+		p.Score = wrapper.GetScore();
+		p.Goals = wrapper.GetMatchGoals();
+		p.Assists = wrapper.GetMatchAssists();
+		p.Saves = wrapper.GetMatchSaves();
+		p.Shots = wrapper.GetMatchShots();
+		p.Demos = wrapper.GetMatchDemolishes();
+	}
+	return p;
+}
+
 string GetPlaylistName(int playlistId);
 Match backupMatchForReplayName;
 bool needToUploadReplay = false;
 string backupPlayerSteamID = "";
 std::chrono::time_point<std::chrono::steady_clock> pluginLoadTime;
+
+struct MMRCacheWrapper {
+	MMRData data;
+	bool addToAfter;
+
+	void AddPlayer(std::string name, SteamID id, float mmr, SkillRank extra, int platform) {
+		if (mmr < 101) return;
+		MMR newValue{ extra.Tier, extra.Division, extra.MatchesPlayed, mmr };
+		std::string sid = std::to_string(id.ID);
+		PlayerMMRData newPlayerData{ platform, sid, newValue };
+		newPlayerData.debug = name;
+		auto it = std::find_if(data.players.begin(), data.players.end(), [&](PlayerMMRData& p) { return p.id == sid; });
+		if (it == data.players.end()) {
+			data.players.push_back(newPlayerData);
+		}
+		else {
+			auto index = std::distance(data.players.begin(), it);
+			if (addToAfter) {
+				data.players[index].hasAfter = true;
+				data.players[index].after = newValue;
+			}
+			else {
+				data.players[index] = newPlayerData;
+			}
+		}
+	}
+
+	void Clear() {
+		data.players.clear();
+		data.game = "";
+		addToAfter = false;
+	}
+
+	void OnMatchEnd() {
+		addToAfter = true;
+	}
+
+	void SetMatchGuid(ServerWrapper server) {
+		this->data.game = server.GetMatchGUID();
+	}
+};
+MMRCacheWrapper mmrCache;
+
 
 void Log(void* object, string message)
 {
@@ -102,6 +165,8 @@ void AutoReplayUploaderPlugin::onLoad()
 	InitializeVariables();
 
 
+
+
 	// Register for Game ending event	
 	gameWrapper->HookEventWithCaller<ServerWrapper>(
 		"Function GameEvent_Soccar_TA.Active.StartRound",
@@ -137,6 +202,12 @@ void AutoReplayUploaderPlugin::onLoad()
 			placeholders::_3
 		)
 	);
+
+	// Register for MMR updates
+	gameWrapper->HookEventPost(
+		//"Function ProjectX.PlaylistSkillCache_X.CacheSkill",
+		"Function ProjectX.OnlineGameSkill_X.HandleSkillRequestCompleteRPC",
+		std::bind(&AutoReplayUploaderPlugin::OnMMRSync, this));
 
 	// Initialize notification plugin assets
 #ifdef TOAST
@@ -283,6 +354,22 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (*uploadToBallchasing)
 	{
 		ballchasing->UploadReplay(replayPath);
+		auto server = gameWrapper->GetOnlineGame();
+		if (server) {
+			mmrCache.SetMatchGuid(server);
+			mmrCache.addToAfter = true;
+			gameWrapper->SetTimeout([&](auto gw) {
+				cvarManager->log("Uploading with match id: " + mmrCache.data.game);
+				cvarManager->log("the cache contains " + std::to_string(mmrCache.data.players.size()) + " players");
+				for (auto p : mmrCache.data.players) {
+					cvarManager->log("\t" + p.debug);
+				}
+				ballchasing->UploadMMr(mmrCache.data);
+				mmrCache.Clear();
+			}, 3);
+
+		}
+		
 	}
 
 	// If we aren't saving the replay remove it after we've uploaded
@@ -301,25 +388,52 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 #endif
 }
 
-Player ConstructPlayer(PriWrapper wrapper)
+struct Res {
+	std::string name;
+	float mmr;
+};
+
+void AutoReplayUploaderPlugin::OnMMRSync()
 {
-	Player p;
-	if (!wrapper.IsNull()) 
-	{
-		p.Name = wrapper.GetPlayerName().ToString();
-		p.UniqueId = wrapper.GetUniqueId().ID;
-		p.Team = wrapper.GetTeamNum();
-		p.Score = wrapper.GetScore();
-		p.Goals = wrapper.GetMatchGoals();
-		p.Assists = wrapper.GetMatchAssists();
-		p.Saves = wrapper.GetMatchSaves();
-		p.Shots = wrapper.GetMatchShots();
-		p.Demos = wrapper.GetMatchDemolishes();
+	auto mmrWrapper = gameWrapper->GetMMRWrapper();
+	auto playlist = mmrWrapper.GetCurrentPlaylist();
+	auto server = gameWrapper->GetOnlineGame();
+	if (!server) {
+		//cvarManager->log("no server");
+		return;
 	}
-	return p;
+	cvarManager->log("on mmr sync");
+	//cvarManager->log("current playlist is: " + std::to_string(playlist));
+	//cvarManager->log("Getting the players");
+	std::vector<Res> res;
+	auto players = server.GetPRIs();
+	cvarManager->log("got " + std::to_string(players.Count()) + " players");
+	for (size_t i = 0; i < players.Count(); i++)
+	{
+		auto player = players.Get(i);
+		if (!player) continue;
+		auto playerName = player.GetPlayerName().ToString();
+		auto platform = player.GetPlatform();
+		//cvarManager->log("Getting MMR for :  "+ playerName);
+		auto playerSteam = player.GetUniqueId();
+		if (playerSteam.ID == 0) continue; //bot
+		if (!mmrWrapper.IsSyncing(playerSteam)) {
+			auto mmr = mmrWrapper.GetPlayerMMR(playerSteam, playlist);
+			auto extra = mmrWrapper.GetPlayerRank(playerSteam, playlist);
+			mmrCache.AddPlayer(playerName, playerSteam, mmr, extra, platform);
+			res.push_back({ playerName , mmr });
+			//cvarManager->log(playerName + " MMR: " + std::to_string(mmr));
+		}
+	}
+	cvarManager->log("MMR results");
+	for (auto r : res) {
+		cvarManager->log("\t" + r.name + ":" + std::to_string(r.mmr));
+	}
+
+
 }
 
-void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void * params, string eventName)
+void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, string eventName)
 {
     /*****************************************************************************************
     * This function will save primary player userdata at the start of any online game. There *

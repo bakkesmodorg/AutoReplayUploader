@@ -306,3 +306,5 @@ OpenCover/
 
 # Properties file
 AutoReplayUploader/bakkesmod.props
+
+!Libs/lib/*.*
