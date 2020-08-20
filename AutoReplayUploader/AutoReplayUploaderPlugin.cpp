@@ -223,12 +223,12 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 */
 void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, string eventName)
 {
-	if (!*uploadToCalculated && !*uploadToBallchasing) // Bail if we aren't uploading replays
+	if (!(*uploadToCalculated) && !(*uploadToBallchasing) && !(*saveReplay)) // Bail if we aren't uploading or saving replays
 	{
 		return; //Not uploading replays
 	}
 
-    if (needToUploadReplay == false) {
+    if (!needToUploadReplay) {
 		// Replay might have already been saved by Function TAGame.GameEvent_Soccar_TA.EventMatchEnded
 		// event if the player stayed in the game long enough. Or we are leaving freeplay, 
 		// custom training, etc instead of online game and will not proceed to upload anything.
@@ -286,7 +286,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	}
 
 	// If we aren't saving the replay remove it after we've uploaded
-	if ((*saveReplay) == false)
+	if (!(*saveReplay))
 	{
 		cvarManager->log("Removing replay file: " + replayPath);
 		remove(replayPath.c_str());
