@@ -26,6 +26,7 @@ BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.2",
 #define CVAR_REPLAY_EXPORT "cl_autoreplayupload_save"
 #define CVAR_UPLOAD_TO_CALCULATED "cl_autoreplayupload_calculated"
 #define CVAR_UPLOAD_TO_BALLCHASING "cl_autoreplayupload_ballchasing"
+#define CVAR_UPLOAD_TO_BALLCHASING_MMR "cl_autoreplayupload_ballchasing_mmr"
 #define CVAR_REPLAY_NAME_TEMPLATE "cl_autoreplayupload_replaynametemplate"
 #define CVAR_REPLAY_SEQUENCE_NUM "cl_autoreplayupload_replaysequence"
 #define CVAR_PLUGIN_SHOW_NOTIFICATIONS "cl_autoreplayupload_notifications"
@@ -236,6 +237,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 
 	// Ball Chasing variables	
 	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING, "0", "Upload to replays to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasing);
+	cvarManager->registerCvar(CVAR_UPLOAD_TO_BALLCHASING_MMR, "0", "Upload mmr data to ballchasing.com automatically", true, true, 0, true, 1).bindTo(uploadToBallchasingMMR);
 	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
@@ -354,20 +356,24 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	if (*uploadToBallchasing)
 	{
 		ballchasing->UploadReplay(replayPath);
-		auto server = gameWrapper->GetOnlineGame();
-		if (server) {
-			mmrCache.SetMatchGuid(server);
-			mmrCache.addToAfter = true;
-			gameWrapper->SetTimeout([&](auto gw) {
-				cvarManager->log("Uploading with match id: " + mmrCache.data.game);
-				cvarManager->log("the cache contains " + std::to_string(mmrCache.data.players.size()) + " players");
-				for (auto p : mmrCache.data.players) {
-					cvarManager->log("\t" + p.debug);
-				}
-				ballchasing->UploadMMr(mmrCache.data);
-				mmrCache.Clear();
-			}, 3);
-
+		if (*uploadToBallchasingMMR) {
+			auto server = gameWrapper->GetOnlineGame();
+			if (server) {
+				mmrCache.SetMatchGuid(server);
+				mmrCache.addToAfter = true;
+				gameWrapper->SetTimeout([&](auto gw) {
+					cvarManager->log("Uploading with match id: " + mmrCache.data.game);
+					cvarManager->log("the cache contains " + std::to_string(mmrCache.data.players.size()) + " players");
+					for (auto p : mmrCache.data.players) {
+						cvarManager->log("\t" + p.debug);
+					}
+					ballchasing->UploadMMr(mmrCache.data);
+					mmrCache.Clear();
+				}, 3);
+			}
+		}
+		else {
+			mmrCache.Clear();
 		}
 		
 	}

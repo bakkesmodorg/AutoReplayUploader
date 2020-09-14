@@ -3,6 +3,7 @@ Auto replay uploader
 6|Calculated replay visibility|cl_autoreplayupload_calculated_visibility|DEFAULT@DEFAULT&PUBLIC@PUBLIC&PRIVATE@PRIVATE
 8|
 1|Enable automatic replay uploading to ballchasing.com|cl_autoreplayupload_ballchasing
+1|Enable automatic mmr data uploading to ballchasing.com|cl_autoreplayupload_ballchasing_mmr
 6|Ballchasing replay visibility|cl_autoreplayupload_ballchasing_visibility|public@public&private@private&unlisted@unlisted
 12|Ballchasing auth key|cl_autoreplayupload_ballchasing_authkey
 9|Ballchasing requires an authentication key to autoupload replays. Get one at https://ballchasing.com/upload
