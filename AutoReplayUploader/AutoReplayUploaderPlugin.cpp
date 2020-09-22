@@ -540,6 +540,20 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 	// Get Team scores
 	match.Team0Score = soccarReplay.GetTeam0Score();
 	match.Team1Score = soccarReplay.GetTeam1Score();
+	
+	if (auto matchWinner = server.GetMatchWinner(); !matchWinner.IsNull())
+	{
+		match.WinningTeam = matchWinner.GetTeamIndex();
+	}
+	else if (auto gameWinner = server.GetGameWinner(); !gameWinner.IsNull())
+	{
+		match.WinningTeam = gameWinner.GetTeamIndex();
+	}
+	else
+	{
+		match.WinningTeam = match.Team0Score > match.Team1Score ? 0 : 1;
+	}
+
 
 	// Get current Sequence number
 	auto seq = *templateSequence;

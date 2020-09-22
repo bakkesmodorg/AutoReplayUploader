@@ -63,7 +63,7 @@ string ApplyNameTemplate(string& nameTemplate, Match& match, int* matchIndex)
 	min.insert(min.begin(), 2 - min.length(), '0');
 
 	// Calculate Win/Loss string
-	auto won = match.PrimaryPlayer.WonMatch(match.Team0Score, match.Team1Score);
+	auto won = match.PrimaryPlayer.WonMatch(match.WinningTeam);
 	auto winloss = won ? string("Win") : string("Loss");
 	auto wl = won ? string("W") : string("L");
 
