@@ -27,6 +27,7 @@ private:
 	// Which endpoints to upload to
 	shared_ptr<bool> uploadToCalculated = make_shared<bool>(false);
 	shared_ptr<bool> uploadToBallchasing = make_shared<bool>(false);
+	shared_ptr<bool> uploadToBallchasingMMR = make_shared<bool>(false);
 
 	// Replay name template variables
 	shared_ptr<int> templateSequence = make_shared<int>(0);
@@ -48,6 +49,7 @@ public:
 	
 	void GetPlayerData(ServerWrapper caller, void* params, string eventName);
 	void OnGameComplete(ServerWrapper caller, void* params, string eventName);
+	void OnMMRSync();
 
 #ifdef TOAST
 	shared_ptr<bool> showNotifications = make_shared<bool>(true);

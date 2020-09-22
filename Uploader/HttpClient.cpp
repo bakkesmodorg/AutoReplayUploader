@@ -75,6 +75,48 @@ long PostFile(PostFileRequest* ctx)
 	return 0;
 }
 
+long PostJson(PostJsonRequest* ctx)
+{
+	try
+	{
+		curlpp::Cleanup cleaner;
+		curlpp::Easy request;
+
+		request.setOpt(new curlpp::options::Url(ctx->Url));
+
+		ctx->Headers.push_back("Expect: "); // disable expect header
+		request.setOpt(new curlpp::options::HttpHeader(ctx->Headers));
+		request.setOpt(new curlpp::options::SslVerifyPeer(false));
+		{
+			request.setOpt(new curlpp::options::PostFields(ctx->body));
+			request.setOpt(new curlpp::options::PostFieldSize(ctx->body.length()));
+		}
+
+		std::ostringstream response;
+		request.setOpt(new curlpp::options::WriteStream(&response));
+
+		request.perform();
+
+		ctx->ResponseBody = std::string(response.str());
+
+		return curlpp::infos::ResponseCode::get(request);
+	}
+	catch (curlpp::LogicError & e)
+	{
+		ctx->Message = e.what();
+		std::cout << e.what() << std::endl;
+	}
+	catch (curlpp::RuntimeError & e) {
+		ctx->Message = e.what();
+		std::cout << e.what() << std::endl;
+	}
+	catch (...)
+	{
+		ctx->Message = "Unknown exception occurred";
+	}
+	return 0;
+}
+
 void GetAsyncThread(void* data)
 {
 	auto ctx = (GetRequest*)data;
@@ -98,6 +140,19 @@ void PostFileThread(void* data)
 void PostFileAsync(PostFileRequest* request)
 {
 	std::thread http(PostFileThread, (void*)request);
+	http.detach();
+}
+
+void PostJsonThread(void* data)
+{
+	auto ctx = (PostJsonRequest*)data;
+	ctx->Status = PostJson(ctx);
+	ctx->RequestComplete(ctx);
+}
+
+void PostJsonAsync(PostJsonRequest* request)
+{
+	std::thread http(PostJsonThread, (void*)request);
 	http.detach();
 }
 

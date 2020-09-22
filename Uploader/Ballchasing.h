@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-
+#include "MMRData.h"
 using namespace std;
 
 class Ballchasing
@@ -23,6 +23,8 @@ public:
 	void* Client;
 
 	void UploadReplay(string replayPath);
+	void UploadMMr(MMRData);
 	void TestAuthKey();
+	bool IsValid();
 };
 

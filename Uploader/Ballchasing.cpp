@@ -37,6 +37,27 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 	}
 }
 
+void BallchasingRequestComplete(PostJsonRequest* ctx)
+{
+	auto ballchasing = (Ballchasing*)ctx->Requester;
+
+	if (ctx->RequestId == 1)
+	{
+		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadMMRComplete with status: " + to_string(ctx->Status));
+		if (ctx->Message.size() > 0)
+		{
+			ballchasing->Log(ballchasing->Client, ctx->Message);
+		}
+		if (ctx->ResponseBody.size() > 0)
+		{
+			ballchasing->Log(ballchasing->Client, ctx->ResponseBody);
+		}
+		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
+
+		delete ctx;
+	}
+}
+
 void BallchasingRequestComplete(GetRequest* ctx)
 {
 	auto ballchasing = (Ballchasing*)ctx->Requester;
@@ -52,13 +73,9 @@ void BallchasingRequestComplete(GetRequest* ctx)
 
 void Ballchasing::UploadReplay(string replayPath)
 {
-	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
+	if (!IsValid() || replayPath.empty())
 	{
-		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
-		Log(Client, "UserAgent: " + UserAgent);
 		Log(Client, "ReplayPath: " + replayPath);
-		Log(Client, "AuthKey: " + *authKey);
-		Log(Client, "Visibility: " + *visibility);
 		return;
 	}
 
@@ -84,6 +101,36 @@ void Ballchasing::UploadReplay(string replayPath)
 	PostFileAsync(request);
 }
 
+void Ballchasing::UploadMMr(MMRData data)
+{
+	if (!IsValid())
+	{
+		return;
+	}
+
+	try {
+		json json_body = data;
+		std::string body = json_body.dump();
+
+		PostJsonRequest* request = new PostJsonRequest();
+		request->Url = "https://ballchasing.com/api/v1/mmr";
+		request->Headers.push_back("Authorization: " + *authKey);
+		request->Headers.push_back("UserAgent: " + UserAgent);
+		request->body = body;
+		request->RequestComplete = &BallchasingRequestComplete;
+		request->RequestId = 1;
+		request->Requester = this;
+		request->Message = "";
+
+		PostJsonAsync(request);
+	}
+	catch (const std::exception & e) {
+		Log(Client,  e.what());
+		return;
+	}
+
+}
+
 /**
 * Tests the authorization key for Ballchasing.com
 */
@@ -98,6 +145,19 @@ void Ballchasing::TestAuthKey()
 	request->Requester = this;
 
 	GetAsync(request);
+}
+
+bool Ballchasing::IsValid()
+{
+	if (UserAgent.empty() || authKey->empty() || visibility->empty() )
+	{
+		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
+		Log(Client, "UserAgent: " + UserAgent);
+		Log(Client, "AuthKey: " + *authKey);
+		Log(Client, "Visibility: " + *visibility);
+		return false;
+	}
+	return true;
 }
 
 Ballchasing::~Ballchasing()
