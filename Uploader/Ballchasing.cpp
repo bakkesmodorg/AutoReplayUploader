@@ -31,7 +31,7 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 		}
 		ballchasing->NotifyUploadResult(ballchasing->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
-		DeleteFile(ctx->FilePath.c_str());
+		std::filesystem::remove(ctx->FilePath);
 
 		delete ctx;
 	}
@@ -50,25 +50,30 @@ void BallchasingRequestComplete(GetRequest* ctx)
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath)
+void Ballchasing::UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath)
 {
 	if (UserAgent.empty() || authKey->empty() || visibility->empty() || replayPath.empty())
 	{
 		Log(Client, "Ballchasing::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
-		Log(Client, "ReplayPath: " + replayPath);
+		Log(Client, "ReplayPath: " + replayPath.string());
 		Log(Client, "AuthKey: " + *authKey);
 		Log(Client, "Visibility: " + *visibility);
 		return;
 	}
 
-	string destPath = "./bakkesmod/data/ballchasing/temp.replay";
-	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
-	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+	std::filesystem::path destPath = startPath / "data/ballchasing/temp.replay";
+	std::filesystem::path tempFolder = startPath / "data/ballchasing/";
+	if (!std::filesystem::exists(tempFolder))
+	{
+		std::filesystem::create_directory(tempFolder);
+	}
+	
+	std::filesystem::copy(replayPath, destPath);
 
-	Log(Client, "ReplayPath: " + replayPath);
-	Log(Client, "DestPath: " + destPath);
-	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
+	Log(Client, "ReplayPath: " + replayPath.string());
+	Log(Client, "DestPath: " + destPath.string());
+	Log(Client, "File copy success: " + std::string(std::filesystem::exists(destPath) ? "true" : "false"));
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = AppendGetParams("https://ballchasing.com/api/v2/upload", { {"visibility", *visibility} });

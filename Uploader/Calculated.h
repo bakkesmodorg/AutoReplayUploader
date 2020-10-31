@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-
+#include <filesystem>
 using namespace std;
 
 class Calculated
@@ -19,6 +19,6 @@ public:
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath, string playerId);
+	void UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath, string playerId);
 };
 

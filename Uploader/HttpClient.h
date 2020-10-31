@@ -23,6 +23,7 @@
 
 #include <thread>
 #endif
+#include <filesystem>
 
 
 using namespace std;
@@ -35,7 +36,7 @@ struct PostFileRequest
 	string Url;
 	list<string> Headers;
 
-	string FilePath;
+	std::filesystem::path FilePath;
 	string ParamName;
 
 	void(*RequestComplete)(PostFileRequest*);

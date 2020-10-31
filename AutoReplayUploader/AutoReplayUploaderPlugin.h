@@ -7,11 +7,11 @@
 #include "Ballchasing.h"
 #include "Calculated.h"
 
-#pragma comment( lib, "bakkesmod.lib" )
+#pragma comment( lib, "pluginsdk.lib" )
 
 using namespace std;
 
-#define DEAULT_EXPORT_PATH "./bakkesmod/data/"
+#define DEFAULT_EXPORT_PATH "./bakkesmod/data/"
 #define DEFAULT_REPLAY_NAME_TEMPLATE "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}"
 
 // TODO: uncomment or remove #ifdef's when new Bakkes mod API becomes available that has Toast notifications
@@ -34,13 +34,13 @@ private:
 	
 	// Export replay variables
 	shared_ptr<bool> saveReplay = make_shared<bool>(false);
-	shared_ptr<string> exportPath = make_shared<string>(DEAULT_EXPORT_PATH);
+	shared_ptr<string> exportPath = make_shared<string>(DEFAULT_EXPORT_PATH);
 
 	// Initializes all variables from bakkes mod settings menu
 	void InitializeVariables();
 
 	string SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay);
-	string ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName);
+	std::filesystem::path ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName);
 
 public:
 	virtual void onLoad();

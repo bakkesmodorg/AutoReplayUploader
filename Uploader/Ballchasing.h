@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-
+#include <filesystem>
 using namespace std;
 
 class Ballchasing
@@ -22,7 +22,7 @@ public:
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath);
+	void UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath);
 	void TestAuthKey();
 };
 

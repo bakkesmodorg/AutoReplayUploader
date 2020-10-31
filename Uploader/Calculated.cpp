@@ -29,7 +29,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 	}
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
-	DeleteFile(ctx->FilePath.c_str());
+	std::filesystem::remove(ctx->FilePath);
 
 	delete ctx;
 }
@@ -37,25 +37,31 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(string replayPath, string playerId)
+void Calculated::UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath, string playerId)
 {
 	if (UserAgent.empty() || replayPath.empty())
 	{
 		Log(Client, "Calculated::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
-		Log(Client, "ReplayPath: " + replayPath);
+		Log(Client, "ReplayPath: " + replayPath.string());
 		return;
 	}
 
 	string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
+	Log(Client, "ReplayPath: " + replayPath.string());
+	
+	std::filesystem::path destPath = startPath / "data/calculated/temp.replay";
+	Log(Client, "DestPath: " + destPath.string());
+	std::filesystem::path tempFolder = startPath / "data/calculated/";
+	if (!std::filesystem::exists(tempFolder))
+	{
+		std::filesystem::create_directory(tempFolder);
+	}
 
-	string destPath = "./bakkesmod/data/calculated/temp.replay";
-	CreateDirectory("./bakkesmod/data/calculated", NULL);
-	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+	std::filesystem::copy(replayPath, destPath);
 
-	Log(Client, "ReplayPath: " + replayPath);
-	Log(Client, "DestPath: " + destPath);
-	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
+	
+	Log(Client, "File copy success: " + std::string(std::filesystem::exists(destPath) ? "true" : "false"));
 
 	PostFileRequest *request = new PostFileRequest();
 	request->Url = path;

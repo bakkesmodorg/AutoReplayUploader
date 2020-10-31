@@ -140,8 +140,8 @@ void AutoReplayUploaderPlugin::onLoad()
 
 	// Initialize notification plugin assets
 #ifdef TOAST
-	gameWrapper->LoadToastTexture("calculated_logo", "./bakkesmod/data/assets/calculated_logo.tga");
-	gameWrapper->LoadToastTexture("ballchasing_logo", "./bakkesmod/data/assets/ballchasing_logo.tga");
+	gameWrapper->LoadToastTexture("calculated_logo", gameWrapper->FixRelativePath("./bakkesmod/data/assets/calculated_logo.tga"));
+	gameWrapper->LoadToastTexture("ballchasing_logo", gameWrapper->FixRelativePath("./bakkesmod/data/assets/ballchasing_logo.tga"));
 #endif
 }
 
@@ -199,10 +199,10 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 
 	// Path to export replays to
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
-	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
+	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEFAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
 	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
 	{
-		if (SanitizeExportPath(exportPath, DEAULT_EXPORT_PATH))
+		if (SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH))
 		{
 			cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).setValue(*exportPath);
 		}
@@ -263,7 +263,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	
 
 	// Export the replay to a file for upload
-	string replayPath = ExportReplay(soccarReplay, replayName);
+	std::filesystem::path replayPath = ExportReplay(soccarReplay, replayName);
 
 	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
 	// the steamID might not be available. Using prestored steamID
@@ -278,24 +278,24 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(replayPath, playerSteamID);
+		calculated->UploadReplay(gameWrapper->GetBakkesModPath(), replayPath, playerSteamID);
 	}
 	if (*uploadToBallchasing)
 	{
-		ballchasing->UploadReplay(replayPath);
+		ballchasing->UploadReplay(gameWrapper->GetBakkesModPath(), replayPath);
 	}
 
 	// If we aren't saving the replay remove it after we've uploaded
 	if (!(*saveReplay))
 	{
-		cvarManager->log("Removing replay file: " + replayPath);
-		remove(replayPath.c_str());
+		cvarManager->log("Removing replay file: " + replayPath.string());
+		std::filesystem::remove(replayPath);
 	}
 #ifdef TOAST
 	else if(*showNotifications)
 	{
-		bool exported = file_exists(replayPath);
-		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
+		bool exported = std::filesystem::exists(replayPath);
+		string msg = exported ? "Exported replay to: " + replayPath.string() : "Failed to export replay to: " + replayPath.string();
 		gameWrapper->Toast("Autoreplayuploader", msg, "default", 3.5f, exported ? ToastType_OK : ToastType_Error);
 	}
 #endif
@@ -454,30 +454,30 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 	return replayName;
 }
 
-string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
+std::filesystem::path AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
 {
-	string replayPath = CalculateReplayPath(*exportPath, replayName);
+	std::filesystem::path replayPath = gameWrapper->FixRelativePath(CalculateReplayPath(*exportPath, replayName));
 
 	// Remove file if it already exists
-	if (file_exists(replayPath))
+	if (std::filesystem::exists(replayPath))
 	{
-		cvarManager->log("Removing duplicate replay file: " + replayPath);
-		remove(replayPath.c_str());
+		cvarManager->log("Removing duplicate replay file: " + replayPath.string());
+		std::filesystem::remove(replayPath);
 	}
 
 	// Export Replay
 	
 	soccarReplay.ExportReplay(replayPath);
-	cvarManager->log("Exported replay to: " + replayPath);
+	cvarManager->log("Exported replay to: " + replayPath.string());
 
 	// Check to see if replay exists, if not then export to default path
-	if (!file_exists(replayPath))
+	if (!std::filesystem::exists(replayPath))
 	{
-		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path.");
-		replayPath = string(DEAULT_EXPORT_PATH) + "autosaved.replay";
+		cvarManager->log("Export failed to path: " + replayPath.string() + " exporting to default path.");
+		replayPath = string(DEFAULT_EXPORT_PATH) + "autosaved.replay";
 
 		soccarReplay.ExportReplay(replayPath);
-		cvarManager->log("Exported replay to: " + replayPath);
+		cvarManager->log("Exported replay to: " + replayPath.string());
 	}
 
 	return replayPath;
