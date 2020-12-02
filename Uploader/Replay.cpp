@@ -73,6 +73,7 @@ string ApplyNameTemplate(string& nameTemplate, Match& match, int* matchIndex)
 	ReplaceAll(name, "{MODE}", match.GameMode);
 	ReplaceAll(name, "{PLAYER}", playerName);
 	ReplaceAll(name, "{UNIQUEID}", to_string(match.PrimaryPlayer.UniqueId));
+	ReplaceAll(name, "{EPICID}", match.PrimaryPlayer.EpicID);
 	ReplaceAll(name, "{WINLOSS}", winloss);
 	ReplaceAll(name, "{WL}", wl);
 	ReplaceAll(name, "{YEAR}", year);

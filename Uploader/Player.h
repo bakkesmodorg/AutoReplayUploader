@@ -9,6 +9,7 @@ class Player
 public:
 	string Name;
 	unsigned long long UniqueId;
+	std::string EpicID;
 	int Team;
 
 	int Score;

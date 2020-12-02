@@ -261,24 +261,29 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	// If we have a template for the replay name then set the replay name based off that template else use default template
 	string replayName = SetReplayName(caller, soccarReplay);
 	
-
+	cvarManager->log("Exporting replay!");
 	// Export the replay to a file for upload
 	std::filesystem::path replayPath = ExportReplay(soccarReplay, replayName);
+	if (!std::filesystem::exists(replayPath) || std::filesystem::is_directory(replayPath))
+	{
+		cvarManager->log("Failed exporting replay to " + replayPath.string());
+		return;
+	}
 
-	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
-	// the steamID might not be available. Using prestored steamID
-    string playerSteamID = to_string(gameWrapper->GetSteamID());
-    if (playerSteamID.length() < 1) {
-    	playerSteamID = backupPlayerSteamID;
-		cvarManager->log("Using backup steamId to upload: " + playerSteamID);
+	
+    UniqueIDWrapper playerSteamID = gameWrapper->GetUniqueID();
+	std::string uploadID = std::to_string(playerSteamID.GetUID());
+    if (uploadID.size() < 1) {
+		uploadID = playerSteamID.str();
+		cvarManager->log("Using backup steamId to upload: " + uploadID);
     } else {
-		cvarManager->log("Using steamId to upload: " + playerSteamID);
+		cvarManager->log("Using steamId to upload: " + uploadID);
     }
 
 	// Upload replay
 	if (*uploadToCalculated)
 	{
-		calculated->UploadReplay(gameWrapper->GetBakkesModPath(), replayPath, playerSteamID);
+		calculated->UploadReplay(gameWrapper->GetBakkesModPath(), replayPath, uploadID);
 	}
 	if (*uploadToBallchasing)
 	{
@@ -307,7 +312,9 @@ Player ConstructPlayer(PriWrapper wrapper)
 	if (!wrapper.IsNull()) 
 	{
 		p.Name = wrapper.GetPlayerName().ToString();
-		p.UniqueId = wrapper.GetUniqueId().ID;
+		p.UniqueId = wrapper.GetUniqueIdWrapper().GetUID();
+		p.EpicID = wrapper.GetUniqueIdWrapper().GetEpicAccountID();
+		
 		p.Team = wrapper.GetTeamNum();
 		p.Score = wrapper.GetScore();
 		p.Goals = wrapper.GetMatchGoals();
@@ -407,6 +414,7 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 		cvarManager->log("Using prerecorder username for replay: " + backupMatchForReplayName.PrimaryPlayer.Name);
 		match.PrimaryPlayer.Name = backupMatchForReplayName.PrimaryPlayer.Name;
 		match.PrimaryPlayer.UniqueId = backupMatchForReplayName.PrimaryPlayer.UniqueId;
+		match.PrimaryPlayer.EpicID = backupMatchForReplayName.PrimaryPlayer.EpicID;
 		match.PrimaryPlayer.Team = backupMatchForReplayName.PrimaryPlayer.Team;
 	}
 
@@ -456,13 +464,25 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 
 std::filesystem::path AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
 {
-	std::filesystem::path replayPath = gameWrapper->FixRelativePath(CalculateReplayPath(*exportPath, replayName));
-
+	std::filesystem::path replayPath = CalculateReplayPath(*exportPath, replayName);
+	cvarManager->log("Calculated replay path: " + replayPath.string());
+	if (replayPath.is_relative())
+	{
+		cvarManager->log("Path is a relative path, fixing it!");
+		replayPath = gameWrapper->FixRelativePath(replayPath);
+		cvarManager->log("Fixed path: " + replayPath.string());
+	}
 	// Remove file if it already exists
 	if (std::filesystem::exists(replayPath))
 	{
 		cvarManager->log("Removing duplicate replay file: " + replayPath.string());
+		if (std::filesystem::is_directory(replayPath))
+		{
+			cvarManager->log("Calculated export path is somehow a directory. " + replayPath.string());
+			return replayPath / "err.replay";
+		}
 		std::filesystem::remove(replayPath);
+		cvarManager->log("File removed.");
 	}
 
 	// Export Replay
@@ -474,7 +494,7 @@ std::filesystem::path AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper
 	if (!std::filesystem::exists(replayPath))
 	{
 		cvarManager->log("Export failed to path: " + replayPath.string() + " exporting to default path.");
-		replayPath = string(DEFAULT_EXPORT_PATH) + "autosaved.replay";
+		replayPath = gameWrapper->GetDataFolder() / "autosaved.replay";
 
 		soccarReplay.ExportReplay(replayPath);
 		cvarManager->log("Exported replay to: " + replayPath.string());
