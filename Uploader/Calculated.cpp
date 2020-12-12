@@ -50,30 +50,52 @@ void Calculated::UploadReplay(std::filesystem::path startPath, std::filesystem::
 	string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
 	Log(Client, "ReplayPath: " + replayPath.string());
 	
-	std::filesystem::path destPath = startPath / "data/calculated/temp.replay";
-	Log(Client, "DestPath: " + destPath.string());
-	std::filesystem::path tempFolder = startPath / "data/calculated/";
-	if (!std::filesystem::exists(tempFolder))
+	try
 	{
-		std::filesystem::create_directory(tempFolder);
-	}
+		if (!std::filesystem::exists(replayPath))
+		{
+			Log(Client, "Replay path doesn't exist? " + replayPath.string());
+			return;
+		}
+		std::filesystem::path destPath = startPath / "data/calculated/temp.replay";
+		Log(Client, "DestPath: " + destPath.string());
+		std::filesystem::path tempFolder = startPath / "data/calculated/";
+		if (!std::filesystem::exists(tempFolder))
+		{
+			std::filesystem::create_directory(tempFolder);
+		}
 
-	std::filesystem::copy(replayPath, destPath);
+		if (std::filesystem::exists(destPath))
+		{
+			Log(Client, "Destination path exists, removing " + destPath.string());
+			std::filesystem::remove(destPath);
+		}
+
+		std::filesystem::copy(replayPath, destPath);
 
 	
-	Log(Client, "File copy success: " + std::string(std::filesystem::exists(destPath) ? "true" : "false"));
+		Log(Client, "File copy success: " + std::string(std::filesystem::exists(destPath) ? "true" : "false"));
 
-	PostFileRequest *request = new PostFileRequest();
-	request->Url = path;
-	request->FilePath = destPath;
-	request->ParamName = "replays";
-	request->Headers.push_back("UserAgent: " + UserAgent);
-	request->RequestComplete = &CalculatedRequestComplete;
-	request->RequestId = 1;
-	request->Requester = this;
-	request->Message = "";
+		PostFileRequest *request = new PostFileRequest();
+		request->Url = path;
+		request->FilePath = destPath;
+		request->ParamName = "replays";
+		request->Headers.push_back("UserAgent: " + UserAgent);
+		request->RequestComplete = &CalculatedRequestComplete;
+		request->RequestId = 1;
+		request->Requester = this;
+		request->Message = "";
 
-	PostFileAsync(request);
+		PostFileAsync(request);
+	}
+	catch (std::exception e)
+	{
+		Log(Client, "AutoreplayUploader ERR: " + std::string(e.what()));
+	}
+	catch (...)
+	{
+		Log(Client, "BAD AutoreplayUploader ERR!");
+	}
 }
 
 Calculated::~Calculated()
