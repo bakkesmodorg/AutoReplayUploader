@@ -7,8 +7,6 @@
 #include "Ballchasing.h"
 #include "Calculated.h"
 
-#pragma comment( lib, "bakkesmod.lib" )
-
 using namespace std;
 
 #define DEAULT_EXPORT_PATH "./bakkesmod/data/"

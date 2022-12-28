@@ -59,7 +59,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>K:\bakkesmod\BakkesMod-rewrite\BakkesMod Rewrite;..\Uploader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDLL;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;TOAST</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -78,7 +78,7 @@
     <ClCompile>
       <DisableSpecificWarnings>4251;4244</DisableSpecificWarnings>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -91,7 +91,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>pluginsdk.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>K:\cpplibs\curl64;K:\cpplibs\openssl64\;K:\bakkesmod\BakkesMod-rewrite\x64\Release;%(AdditionalLibraryDirectories);../Libs/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);../Libs/lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>
