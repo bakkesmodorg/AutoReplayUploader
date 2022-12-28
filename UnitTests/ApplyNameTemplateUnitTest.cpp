@@ -20,8 +20,8 @@ namespace UnitTests
 			match.PrimaryPlayer.Name = "|\\*t?e\"/s<t>";
 
 			int index = 1;
-			string replayTemplate = "{PLAYER}";
-			string newName = ApplyNameTemplate(replayTemplate, match, &index);
+			std::string replayTemplate = "{PLAYER}";
+			std::string newName = ApplyNameTemplate(replayTemplate, match, &index);
 
 			Assert::AreEqual("test", newName.c_str());
 		}

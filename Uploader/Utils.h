@@ -6,10 +6,9 @@
 #include <ctime>
 #include <regex>
 
-using namespace std;
 
-bool ReplaceAll(string& str, const string& from, const string& to);
+bool ReplaceAll(std::string& str, const std::string& from, const std::string& to);
 
-bool RemoveChars(shared_ptr<string> str, regex matchesToRemove);
+bool RemoveChars(std::shared_ptr<std::string> str, std::regex matchesToRemove);
 
-bool RemoveChars(string& str, regex matchesToRemove);
+bool RemoveChars(std::string& str, std::regex matchesToRemove);

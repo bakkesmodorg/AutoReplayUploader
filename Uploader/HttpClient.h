@@ -25,23 +25,22 @@
 #endif
 
 
-using namespace std;
 
 struct PostFileRequest
 {
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
-	string Url;
-	list<string> Headers;
+	std::string Url;
+	std::list<std::string> Headers;
 
-	string FilePath;
-	string ParamName;
+	std::string FilePath;
+	std::string ParamName;
 
 	void(*RequestComplete)(PostFileRequest*);
 	long Status;
-	string Message;
-	string ResponseBody;
+	std::string Message;
+	std::string ResponseBody;
 };
 
 struct PostJsonRequest
@@ -49,15 +48,15 @@ struct PostJsonRequest
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
-	string Url;
-	list<string> Headers;
+	std::string Url;
+	std::list<std::string> Headers;
 
-	string body;
+	std::string body;
 
 	void(*RequestComplete)(PostJsonRequest*);
 	long Status;
-	string Message;
-	string ResponseBody;
+	std::string Message;
+	std::string ResponseBody;
 };
 
 struct GetRequest
@@ -65,8 +64,8 @@ struct GetRequest
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
-	string Url;
-	list<string> Headers;
+	std::string Url;
+	std::list<std::string> Headers;
 
 	void(*RequestComplete)(GetRequest*);
 	long Status;
@@ -78,4 +77,4 @@ void GetAsync(GetRequest* request);
 void PostFileAsync(PostFileRequest* request);
 void PostJsonAsync(PostJsonRequest* request);
 long PostFile(PostFileRequest* request);
-string AppendGetParams(string baseUrl, map<string, string> getParams);
+std::string AppendGetParams(std::string baseUrl, std::map<std::string, std::string> getParams);

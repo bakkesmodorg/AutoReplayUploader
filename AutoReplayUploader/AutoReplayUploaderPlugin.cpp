@@ -17,8 +17,6 @@
 
 #include "bakkesmod/wrappers/wrapperstructs.h"
 
-using namespace std;
-
 BAKKESMOD_PLUGIN(AutoReplayUploaderPlugin, "Auto replay uploader plugin", "0.2", 0);
 
 // Constant CVAR variable names
@@ -53,10 +51,10 @@ Player ConstructPlayer(PriWrapper wrapper)
 	return p;
 }
 
-string GetPlaylistName(int playlistId);
+std::string GetPlaylistName(int playlistId);
 Match backupMatchForReplayName;
 bool needToUploadReplay = false;
-string backupPlayerSteamID = "";
+std::string backupPlayerSteamID = "";
 std::chrono::time_point<std::chrono::steady_clock> pluginLoadTime;
 
 struct MMRCacheWrapper {
@@ -102,13 +100,13 @@ struct MMRCacheWrapper {
 MMRCacheWrapper mmrCache;
 
 
-void Log(void* object, string message)
+void Log(void* object, std::string message)
 {
 	auto plugin = (AutoReplayUploaderPlugin*)object;
 	plugin->cvarManager->log(message);
 }
 
-void UploadComplete(AutoReplayUploaderPlugin* plugin, bool result, string endpoint)
+void UploadComplete(AutoReplayUploaderPlugin* plugin, bool result, std::string endpoint)
 {
 #ifdef TOAST
 	if (*(plugin->showNotifications)) {
@@ -142,7 +140,7 @@ void BallchasingUploadComplete(void* object, bool result)
 void BallchasingAuthTestComplete(void* object, bool result)
 {
 	auto plugin = (AutoReplayUploaderPlugin*)object;
-	string msg = result ? "Auth key correct!" : "Invalid auth key!";
+	std::string msg = result ? "Auth key correct!" : "Invalid auth key!";
 	plugin->cvarManager->getCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT).setValue(msg);
 }
 
@@ -153,11 +151,11 @@ void BallchasingAuthTestComplete(void* object, bool result)
 */
 void AutoReplayUploaderPlugin::onLoad()
 {
-	stringstream userAgentStream;
+	std::stringstream userAgentStream;
 	userAgentStream << exports.className << "/" << exports.pluginVersion << " BakkesModAPI/" << BAKKESMOD_PLUGIN_API_VERSION;
-	string userAgent = userAgentStream.str();
+	std::string userAgent = userAgentStream.str();
 
-	pluginLoadTime = chrono::steady_clock::now();
+	pluginLoadTime = std::chrono::steady_clock::now();
 
 	// Setup upload handlers
 	ballchasing = new Ballchasing(userAgent, &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, this);
@@ -174,9 +172,9 @@ void AutoReplayUploaderPlugin::onLoad()
 		bind(
 			&AutoReplayUploaderPlugin::GetPlayerData,
 			this,
-			placeholders::_1,
-			placeholders::_2,
-			placeholders::_3
+			std::placeholders::_1,
+			std::placeholders::_2,
+			std::placeholders::_3
 		)
 	);
 
@@ -186,9 +184,9 @@ void AutoReplayUploaderPlugin::onLoad()
 		bind(
 			&AutoReplayUploaderPlugin::OnGameComplete,
 			this,
-			placeholders::_1,
-			placeholders::_2,
-			placeholders::_3
+			std::placeholders::_1,
+			std::placeholders::_2,
+			std::placeholders::_3
 		)
 	);
 
@@ -198,9 +196,9 @@ void AutoReplayUploaderPlugin::onLoad()
 		bind(
 			&AutoReplayUploaderPlugin::OnGameComplete,
 			this,
-			placeholders::_1,
-			placeholders::_2,
-			placeholders::_3
+			std::placeholders::_1,
+			std::placeholders::_2,
+			std::placeholders::_3
 		)
 	);
 
@@ -241,13 +239,13 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	cvarManager->registerCvar(CVAR_BALLCHASING_REPLAY_VISIBILITY, "public", "Replay visibility when uploading to ballchasing.com", false, false, 0, false, 0, true).bindTo(ballchasing->visibility);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_TEST_RESULT, "Untested", "Auth token needed to upload replays to ballchasing.com", false, false, 0, false, 0, false);
 	cvarManager->registerCvar(CVAR_BALLCHASING_AUTH_KEY, "", "Auth token needed to upload replays to ballchasing.com").bindTo(ballchasing->authKey);
-	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	cvarManager->getCvar(CVAR_BALLCHASING_AUTH_KEY).addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{   
 		if (ballchasing->authKey->size() > 0 &&         // We don't test the auth key if the size of the auth key is empty
 			ballchasing->authKey->compare(oldVal) != 0) // We don't test unless the value has changed
 		{
-			auto elapsed = chrono::steady_clock::now() - pluginLoadTime;
-			if (chrono::duration_cast<chrono::milliseconds>(elapsed) < chrono::milliseconds(5000))
+			auto elapsed = std::chrono::steady_clock::now() - pluginLoadTime;
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed) < std::chrono::milliseconds(5000))
 			{
 				cvarManager->log("Not checking auth key since plugin was loaded recently");
 			}
@@ -262,7 +260,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	// Replay Name template variables
 	cvarManager->registerCvar(CVAR_REPLAY_SEQUENCE_NUM, "0", "Current Reqlay Sequence number to be used in replay name", true, true, 0, false, 0, true).bindTo(templateSequence);
 	cvarManager->registerCvar(CVAR_REPLAY_NAME_TEMPLATE, DEFAULT_REPLAY_NAME_TEMPLATE, "Template for in game name of replay", true, true, 0, true, 0, true).bindTo(replayNameTemplate);
-	cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	cvarManager->getCvar(CVAR_REPLAY_NAME_TEMPLATE).addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{
 		if (SanitizeReplayNameTemplate(replayNameTemplate, DEFAULT_REPLAY_NAME_TEMPLATE))
 		{
@@ -273,7 +271,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 	// Path to export replays to
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT, "0", "Save all replay files to export filepath above.", true, true, 0, true, 1).bindTo(saveReplay);
 	cvarManager->registerCvar(CVAR_REPLAY_EXPORT_PATH, DEAULT_EXPORT_PATH, "Path to export replays to.").bindTo(exportPath);
-	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](string oldVal, CVarWrapper cvar)
+	cvarManager->getCvar(CVAR_REPLAY_EXPORT_PATH).addOnValueChanged([this](std::string oldVal, CVarWrapper cvar)
 	{
 		if (SanitizeExportPath(exportPath, DEAULT_EXPORT_PATH))
 		{
@@ -294,7 +292,7 @@ void AutoReplayUploaderPlugin::InitializeVariables()
 *	params - Event parameters
 *	eventName - Event name
 */
-void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, string eventName)
+void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * params, std::string eventName)
 {
 	if (!(*uploadToCalculated) && !(*uploadToBallchasing) && !(*saveReplay)) // Bail if we aren't uploading or saving replays
 	{
@@ -332,15 +330,15 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	soccarReplay.StopRecord();
 	
 	// If we have a template for the replay name then set the replay name based off that template else use default template
-	string replayName = SetReplayName(caller, soccarReplay);
+	std::string replayName = SetReplayName(caller, soccarReplay);
 	
 
 	// Export the replay to a file for upload
-	string replayPath = ExportReplay(soccarReplay, replayName);
+	std::string replayPath = ExportReplay(soccarReplay, replayName);
 
 	// If we are saving this with event Function TAGame.GameEvent_Soccar_TA.Destroyed
 	// the steamID might not be available. Using prestored steamID
-    string playerSteamID = to_string(gameWrapper->GetSteamID());
+	std::string playerSteamID = std::to_string(gameWrapper->GetSteamID());
     if (playerSteamID.length() < 1) {
     	playerSteamID = backupPlayerSteamID;
 		cvarManager->log("Using backup steamId to upload: " + playerSteamID);
@@ -388,7 +386,7 @@ void AutoReplayUploaderPlugin::OnGameComplete(ServerWrapper caller, void * param
 	else if(*showNotifications)
 	{
 		bool exported = file_exists(replayPath);
-		string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
+		std::string msg = exported ? "Exported replay to: " + replayPath : "Failed to export replay to: " + replayPath;
 		gameWrapper->Toast("Autoreplayuploader", msg, "default", 3.5f, exported ? ToastType_OK : ToastType_Error);
 	}
 #endif
@@ -439,7 +437,7 @@ void AutoReplayUploaderPlugin::OnMMRSync()
 
 }
 
-void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, string eventName)
+void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params, std::string eventName)
 {
     /*****************************************************************************************
     * This function will save primary player userdata at the start of any online game. There *
@@ -463,7 +461,7 @@ void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params,
 	
 	// We are in online game and now storing some important player data, if needed after the game
 	// When uploading the replay.
-	backupPlayerSteamID = to_string(gameWrapper->GetSteamID());
+	backupPlayerSteamID = std::to_string(gameWrapper->GetSteamID());
 
     CarWrapper mycar = gameWrapper->GetLocalCar();
     if (!mycar.IsNull()) {
@@ -494,9 +492,9 @@ void AutoReplayUploaderPlugin::GetPlayerData(ServerWrapper caller, void* params,
 *		{WL} - W or L depending on if the player won or lost
 *		{WINLOSS} - Win or Loss depending on if the player won or lost
 */
-string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay)
+std::string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay)
 {
-	string replayName = *replayNameTemplate;
+	std::string replayName = *replayNameTemplate;
 	cvarManager->log("Using replay name template: " + replayName);
 
 	Match match;
@@ -560,9 +558,9 @@ string AutoReplayUploaderPlugin::SetReplayName(ServerWrapper& server, ReplaySocc
 	return replayName;
 }
 
-string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName)
+std::string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay, std::string replayName)
 {
-	string replayPath = CalculateReplayPath(*exportPath, replayName);
+	std::string replayPath = CalculateReplayPath(*exportPath, replayName);
 
 	// Remove file if it already exists
 	if (file_exists(replayPath))
@@ -580,7 +578,7 @@ string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay,
 	if (!file_exists(replayPath))
 	{
 		cvarManager->log("Export failed to path: " + replayPath + " exporting to default path.");
-		replayPath = string(DEAULT_EXPORT_PATH) + "autosaved.replay";
+		replayPath = std::string(DEAULT_EXPORT_PATH) + "autosaved.replay";
 
 		soccarReplay.ExportReplay(replayPath);
 		cvarManager->log("Exported replay to: " + replayPath);
@@ -593,7 +591,7 @@ string AutoReplayUploaderPlugin::ExportReplay(ReplaySoccarWrapper& soccarReplay,
 
 #pragma region Utility Functions
 
-string GetPlaylistName(int playlistId) {
+std::string GetPlaylistName(int playlistId) {
 	switch (playlistId) {
 	case(1):
 		return "Casual Duel";

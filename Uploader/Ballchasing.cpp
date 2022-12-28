@@ -3,9 +3,8 @@
 #include "HttpClient.h"
 #include <sstream>
 
-using namespace std;
 
-Ballchasing::Ballchasing(string userAgent, void(*Log)(void *object, string message), void(*NotifyUploadResult)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client)
+Ballchasing::Ballchasing(std::string userAgent, void(*Log)(void *object, std::string message), void(*NotifyUploadResult)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client)
 {
 	this->UserAgent = userAgent;
 	this->Log = Log;
@@ -20,7 +19,7 @@ void BallchasingRequestComplete(PostFileRequest* ctx)
 
 	if (ctx->RequestId == 1)
 	{
-		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + to_string(ctx->Status));
+		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadCompleted with status: " + std::to_string(ctx->Status));
 		if (ctx->Message.size() > 0)
 		{
 			ballchasing->Log(ballchasing->Client, ctx->Message);
@@ -43,7 +42,7 @@ void BallchasingRequestComplete(PostJsonRequest* ctx)
 
 	if (ctx->RequestId == 1)
 	{
-		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadMMRComplete with status: " + to_string(ctx->Status));
+		ballchasing->Log(ballchasing->Client, "Ballchasing::UploadMMRComplete with status: " + std::to_string(ctx->Status));
 		if (ctx->Message.size() > 0)
 		{
 			ballchasing->Log(ballchasing->Client, ctx->Message);
@@ -64,14 +63,14 @@ void BallchasingRequestComplete(GetRequest* ctx)
 
 	if (ctx->RequestId == 2)
 	{
-		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + to_string(ctx->Status));
+		ballchasing->Log(ballchasing->Client, "Ballchasing::AuthTest completed with status: " + std::to_string(ctx->Status));
 		ballchasing->NotifyAuthResult(ballchasing->Client, ctx->Status == 200);
 
 		delete ctx;
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath)
+void Ballchasing::UploadReplay(std::string replayPath)
 {
 	if (!IsValid() || replayPath.empty())
 	{
@@ -79,7 +78,7 @@ void Ballchasing::UploadReplay(string replayPath)
 		return;
 	}
 
-	string destPath = "./bakkesmod/data/ballchasing/temp.replay";
+	std::string destPath = "./bakkesmod/data/ballchasing/temp.replay";
 	CreateDirectory("./bakkesmod/data/ballchasing", NULL);
 	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 

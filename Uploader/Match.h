@@ -5,15 +5,14 @@
 #include <string>
 #include <vector>
 
-using namespace std;
 
 class Match
 {
 public:
 
-	string GameMode;
+	std::string GameMode;
 	Player PrimaryPlayer;
-	vector<Player> Players;
+	std::vector<Player> Players;
 
 	int Team0Score;
 	int Team1Score;

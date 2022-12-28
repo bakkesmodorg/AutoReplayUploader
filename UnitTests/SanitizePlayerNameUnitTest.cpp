@@ -14,13 +14,13 @@ namespace UnitTests
 
 		TEST_METHOD(RemovesIllegalChars)
 		{
-			string newName = SanitizePlayerName("|\\*t?e\"/s<t>", "Player");
+			std::string newName = SanitizePlayerName("|\\*t?e\"/s<t>", "Player");
 			Assert::AreEqual("test", newName.c_str());
 		}
 
 		TEST_METHOD(RemovesIllegalChars2)
 		{
-			string newName = SanitizePlayerName("testing.,/;'[]♿", "Player");
+			std::string newName = SanitizePlayerName("testing.,/;'[]♿", "Player");
 			Assert::AreEqual("testing.,;'[]", newName.c_str());
 		}
 	};

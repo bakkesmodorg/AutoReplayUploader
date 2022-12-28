@@ -7,7 +7,6 @@
 #include "Ballchasing.h"
 #include "Calculated.h"
 
-using namespace std;
 
 #define DEAULT_EXPORT_PATH "./bakkesmod/data/"
 #define DEFAULT_REPLAY_NAME_TEMPLATE "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}"
@@ -23,33 +22,33 @@ private:
 	Calculated* calculated;
 
 	// Which endpoints to upload to
-	shared_ptr<bool> uploadToCalculated = make_shared<bool>(false);
-	shared_ptr<bool> uploadToBallchasing = make_shared<bool>(false);
-	shared_ptr<bool> uploadToBallchasingMMR = make_shared<bool>(false);
+	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
+	std::shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
+	std::shared_ptr<bool> uploadToBallchasingMMR = std::make_shared<bool>(false);
 
 	// Replay name template variables
-	shared_ptr<int> templateSequence = make_shared<int>(0);
-	shared_ptr<string> replayNameTemplate = make_shared<string>(DEFAULT_REPLAY_NAME_TEMPLATE);
+	std::shared_ptr<int> templateSequence = std::make_shared<int>(0);
+	std::shared_ptr<std::string> replayNameTemplate = std::make_shared<std::string>(DEFAULT_REPLAY_NAME_TEMPLATE);
 	
 	// Export replay variables
-	shared_ptr<bool> saveReplay = make_shared<bool>(false);
-	shared_ptr<string> exportPath = make_shared<string>(DEAULT_EXPORT_PATH);
+	std::shared_ptr<bool> saveReplay = std::make_shared<bool>(false);
+	std::shared_ptr<std::string> exportPath = std::make_shared<std::string>(DEAULT_EXPORT_PATH);
 
 	// Initializes all variables from bakkes mod settings menu
 	void InitializeVariables();
 
-	string SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay);
-	string ExportReplay(ReplaySoccarWrapper& soccarReplay, string replayName);
+	std::string SetReplayName(ServerWrapper& server, ReplaySoccarWrapper& soccarReplay);
+	std::string ExportReplay(ReplaySoccarWrapper& soccarReplay, std::string replayName);
 
 public:
 	virtual void onLoad();
 	virtual void onUnload();
 	
-	void GetPlayerData(ServerWrapper caller, void* params, string eventName);
-	void OnGameComplete(ServerWrapper caller, void* params, string eventName);
+	void GetPlayerData(ServerWrapper caller, void* params, std::string eventName);
+	void OnGameComplete(ServerWrapper caller, void* params, std::string eventName);
 	void OnMMRSync();
 
 #ifdef TOAST
-	shared_ptr<bool> showNotifications = make_shared<bool>(true);
+	std::shared_ptr<bool> showNotifications = std::make_shared<bool>(true);
 #endif
 };

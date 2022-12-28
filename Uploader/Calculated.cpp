@@ -2,11 +2,10 @@
 
 #include "HttpClient.h"
 
-using namespace std;
 
 #define CALCULATED_ENDPOINT_URL  "https://us-east1-calculatedgg-217303.cloudfunctions.net/queue_replay"
 
-Calculated::Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
+Calculated::Calculated(std::string userAgent, void(*log)(void* object, std::string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
 {
 	this->UserAgent = userAgent;
 	this->Log = log;
@@ -18,7 +17,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 {
 	auto calculated = (Calculated*)ctx->Requester;
 
-	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
+	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + std::to_string(ctx->Status));
 	if (ctx->Message.size() > 0)
 	{
 		calculated->Log(calculated->Client, ctx->Message);
@@ -37,7 +36,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(string replayPath, string playerId)
+void Calculated::UploadReplay(std::string replayPath, std::string playerId)
 {
 	if (UserAgent.empty() || replayPath.empty())
 	{
@@ -47,9 +46,9 @@ void Calculated::UploadReplay(string replayPath, string playerId)
 		return;
 	}
 
-	string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
+	std::string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
 
-	string destPath = "./bakkesmod/data/calculated/temp.replay";
+	std::string destPath = "./bakkesmod/data/calculated/temp.replay";
 	CreateDirectory("./bakkesmod/data/calculated", NULL);
 	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
 

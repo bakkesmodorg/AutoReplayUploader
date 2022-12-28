@@ -3,35 +3,35 @@
 #include "Utils.h"
 #include "Replay.h"
 
-void Log(void* object, string message)
+void Log(void* object, std::string message)
 {
-	cout << message << endl;
+	std::cout << message << std::endl;
 }
 
-void SetVariable(void* object, string name, string value)
+void SetVariable(void* object, std::string name, std::string value)
 {
-	cout << "Set: " << name << " to: " << value << endl;
+	std::cout << "Set: " << name << " to: " << value << std::endl;
 }
 
 void CalculatedUploadComplete(void* object, bool result)
 {
-	cout << "Calculated upload completed with result: " << result;
+	std::cout << "Calculated upload completed with result: " << result;
 }
 
 void BallchasingUploadComplete(void* object, bool result)
 {
-	cout << "Ballchasing upload completed with result: " << result;
+	std::cout << "Ballchasing upload completed with result: " << result;
 }
 
 void BallchasingAuthTestComplete(void* object, bool result)
 {
-	cout << "Ballchasing authtest completed with result: " << result;
+	std::cout << "Ballchasing authtest completed with result: " << result;
 }
 
 int main()
 {
-	string filename = "979B723811E971FCE06E328BDF9F6172.replay";
-	string replayFile = "C:/Users/tyni/Desktop/" + filename;
+	std::string filename = "979B723811E971FCE06E328BDF9F6172.replay";
+	std::string replayFile = "C:/Users/tyni/Desktop/" + filename;
 
 	Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
 	*(ballchasing->authKey) = "test";

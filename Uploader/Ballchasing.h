@@ -2,27 +2,26 @@
 
 #include <iostream>
 #include "MMRData.h"
-using namespace std;
 
 class Ballchasing
 {
 private:
-	string UserAgent;
-	string uploadBoundary;
+	std::string UserAgent;
+	std::string uploadBoundary;
 
 public:
-	Ballchasing(string userAgent, void(*Log)(void *object, string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
+	Ballchasing(std::string userAgent, void(*Log)(void *object, std::string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
 	~Ballchasing();
 
-	shared_ptr<string> authKey = make_shared<string>("");
-	shared_ptr<string> visibility = make_shared<string>("public");
-
-	void(*Log)(void* object, string message);
+	std::shared_ptr<std::string> authKey = std::make_shared<std::string>("");
+	std::shared_ptr<std::string> visibility = std::make_shared<std::string>("public");
+	
+	void(*Log)(void* object, std::string message);
 	void(*NotifyAuthResult)(void* object, bool result);
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath);
+	void UploadReplay(std::string replayPath);
 	void UploadMMr(MMRData);
 	void TestAuthKey();
 	bool IsValid();

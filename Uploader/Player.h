@@ -2,12 +2,11 @@
 
 #include <string>
 
-using namespace std;
 
 class Player
 {
 public:
-	string Name;
+	std::string Name;
 	unsigned long long UniqueId;
 	int Team;
 

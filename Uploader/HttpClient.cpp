@@ -156,7 +156,7 @@ void PostJsonAsync(PostJsonRequest* request)
 	http.detach();
 }
 
-string AppendGetParams(string baseUrl, map<string, string> getParams)
+std::string AppendGetParams(std::string baseUrl, std::map<std::string, std::string> getParams)
 {
 	std::stringstream urlStream;
 	urlStream << baseUrl;
@@ -174,7 +174,7 @@ string AppendGetParams(string baseUrl, map<string, string> getParams)
 	return urlStream.str();
 }
 
-char* CopyToCharPtr(vector<uint8_t>& vector)
+char* CopyToCharPtr(std::vector<uint8_t>& vector)
 {
 	char *reqData = new char[vector.size() + 1];
 	for (size_t i = 0; i < vector.size(); i++)

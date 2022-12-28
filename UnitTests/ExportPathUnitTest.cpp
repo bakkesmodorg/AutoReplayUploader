@@ -14,7 +14,7 @@ namespace UnitTests
 
 		TEST_METHOD(ValidReturnsFalse)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("C:/test");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("C:/test");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure nothing changed and we returned false
@@ -35,7 +35,7 @@ namespace UnitTests
 		
 		TEST_METHOD(ConvertsAllBSlashToFSlash)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("C:\\test\\");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("C:\\test\\");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure it no longer contains back slash
@@ -47,7 +47,7 @@ namespace UnitTests
 
 		TEST_METHOD(EmptyPathReturnsDefault)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure an empty path returns the default
@@ -57,7 +57,7 @@ namespace UnitTests
 
 		TEST_METHOD(IllegalCharsRemoved)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("|C:\\*t?e\"s<t>");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("|C:\\*t?e\"s<t>");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure all illegal chars are removed
@@ -67,7 +67,7 @@ namespace UnitTests
 
 		TEST_METHOD(OnlyIllegalCharsReturnsDefault)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("*?\"<>|");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("*?\"<>|");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure if orignal is all illegal strings the we return the default
@@ -77,7 +77,7 @@ namespace UnitTests
 
 		TEST_METHOD(OnlyTrailingSlashReturnsDefault)
 		{
-			shared_ptr<string> exportPath = make_shared<string>("/");
+			std::shared_ptr<std::string> exportPath = std::make_shared<std::string>("/");
 			bool changed = SanitizeExportPath(exportPath, DEFAULT_EXPORT_PATH);
 
 			// ensure only a trailing slash returns the default

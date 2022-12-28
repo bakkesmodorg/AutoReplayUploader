@@ -2,23 +2,22 @@
 
 #include <iostream>
 
-using namespace std;
 
 class Calculated
 {
 private:
-	string UserAgent;
+	std::string UserAgent;
 
 public:
-	Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
+	Calculated(std::string userAgent, void(*log)(void* object, std::string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
 	~Calculated();
 
-	shared_ptr<string> visibility = make_shared<string>("DEFAULT");
+	std::shared_ptr<std::string> visibility = std::make_shared<std::string>("DEFAULT");
 
-	void(*Log)(void* object, string message);
+	void(*Log)(void* object, std::string message);
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(string replayPath, string playerId);
+	void UploadReplay(std::string replayPath, std::string playerId);
 };
 

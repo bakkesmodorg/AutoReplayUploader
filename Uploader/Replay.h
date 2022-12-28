@@ -4,14 +4,13 @@
 #include <string>
 #include "Match.h"
 
-using namespace std;
 
-bool SanitizeReplayNameTemplate(shared_ptr<string> replayNameTemplate, string defaultValue);
+bool SanitizeReplayNameTemplate(std::shared_ptr<std::string> replayNameTemplate, std::string defaultValue);
 
-string SanitizePlayerName(string playerName, string defaultValue);
+std::string SanitizePlayerName(std::string playerName, std::string defaultValue);
 
-string ApplyNameTemplate(string& nameTemplate, Match& match, int* matchIndex);
+std::string ApplyNameTemplate(std::string& nameTemplate, Match& match, int* matchIndex);
 
-bool SanitizeExportPath(shared_ptr<string> exportPath, string defaultValue);
+bool SanitizeExportPath(std::shared_ptr<std::string> exportPath, std::string defaultValue);
 
-string CalculateReplayPath(string& exportDir, string& replayName);
+std::string CalculateReplayPath(std::string& exportDir, std::string& replayName);
