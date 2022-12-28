@@ -23,40 +23,26 @@
 
 #include <thread>
 #endif
+#include <filesystem>
 
 
+using namespace std;
 
 struct PostFileRequest
 {
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
-	std::string Url;
-	std::list<std::string> Headers;
+	string Url;
+	list<string> Headers;
 
-	std::string FilePath;
-	std::string ParamName;
+	std::filesystem::path FilePath;
+	string ParamName;
 
 	void(*RequestComplete)(PostFileRequest*);
 	long Status;
-	std::string Message;
-	std::string ResponseBody;
-};
-
-struct PostJsonRequest
-{
-	unsigned int RequestId = 0;
-	void* Requester = NULL;
-
-	std::string Url;
-	std::list<std::string> Headers;
-
-	std::string body;
-
-	void(*RequestComplete)(PostJsonRequest*);
-	long Status;
-	std::string Message;
-	std::string ResponseBody;
+	string Message;
+	string ResponseBody;
 };
 
 struct GetRequest
@@ -64,8 +50,8 @@ struct GetRequest
 	unsigned int RequestId = 0;
 	void* Requester = NULL;
 
-	std::string Url;
-	std::list<std::string> Headers;
+	string Url;
+	list<string> Headers;
 
 	void(*RequestComplete)(GetRequest*);
 	long Status;
@@ -75,6 +61,5 @@ long Get(GetRequest* request);
 void GetAsync(GetRequest* request);
 
 void PostFileAsync(PostFileRequest* request);
-void PostJsonAsync(PostJsonRequest* request);
 long PostFile(PostFileRequest* request);
-std::string AppendGetParams(std::string baseUrl, std::map<std::string, std::string> getParams);
+string AppendGetParams(string baseUrl, map<string, string> getParams);

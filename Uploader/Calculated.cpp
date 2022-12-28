@@ -2,10 +2,11 @@
 
 #include "HttpClient.h"
 
+using namespace std;
 
 #define CALCULATED_ENDPOINT_URL  "https://us-east1-calculatedgg-217303.cloudfunctions.net/queue_replay"
 
-Calculated::Calculated(std::string userAgent, void(*log)(void* object, std::string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
+Calculated::Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client)
 {
 	this->UserAgent = userAgent;
 	this->Log = log;
@@ -17,7 +18,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 {
 	auto calculated = (Calculated*)ctx->Requester;
 
-	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + std::to_string(ctx->Status));
+	calculated->Log(calculated->Client, "Calculated::UploadCompleted with status: " + to_string(ctx->Status));
 	if (ctx->Message.size() > 0)
 	{
 		calculated->Log(calculated->Client, ctx->Message);
@@ -28,7 +29,7 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 	}
 	calculated->NotifyUploadResult(calculated->Client, (ctx->Status >= 200 && ctx->Status < 300));
 
-	DeleteFile(ctx->FilePath.c_str());
+	std::filesystem::remove(ctx->FilePath);
 
 	delete ctx;
 }
@@ -36,37 +37,65 @@ void CalculatedRequestComplete(PostFileRequest* ctx)
 /**
 * Posts the replay file to Calculated.gg
 */
-void Calculated::UploadReplay(std::string replayPath, std::string playerId)
+void Calculated::UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath, string playerId)
 {
 	if (UserAgent.empty() || replayPath.empty())
 	{
 		Log(Client, "Calculated::UploadReplay Parameters were empty.");
 		Log(Client, "UserAgent: " + UserAgent);
-		Log(Client, "ReplayPath: " + replayPath);
+		Log(Client, "ReplayPath: " + replayPath.string());
 		return;
 	}
 
-	std::string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
+	string path = AppendGetParams(CALCULATED_ENDPOINT_URL, { {"player_id", playerId}, {"visibility", *visibility} });
+	Log(Client, "ReplayPath: " + replayPath.string());
+	
+	try
+	{
+		if (!std::filesystem::exists(replayPath))
+		{
+			Log(Client, "Replay path doesn't exist? " + replayPath.string());
+			return;
+		}
+		std::filesystem::path destPath = startPath / "data/calculated/temp.replay";
+		Log(Client, "DestPath: " + destPath.string());
+		std::filesystem::path tempFolder = startPath / "data/calculated/";
+		if (!std::filesystem::exists(tempFolder))
+		{
+			std::filesystem::create_directory(tempFolder);
+		}
 
-	std::string destPath = "./bakkesmod/data/calculated/temp.replay";
-	CreateDirectory("./bakkesmod/data/calculated", NULL);
-	bool resultOfCopy = CopyFile(replayPath.c_str(), destPath.c_str(), FALSE);
+		if (std::filesystem::exists(destPath))
+		{
+			Log(Client, "Destination path exists, removing " + destPath.string());
+			std::filesystem::remove(destPath);
+		}
 
-	Log(Client, "ReplayPath: " + replayPath);
-	Log(Client, "DestPath: " + destPath);
-	Log(Client, "File copy success: " + std::string(resultOfCopy ? "true" : "false"));
+		std::filesystem::copy(replayPath, destPath);
 
-	PostFileRequest *request = new PostFileRequest();
-	request->Url = path;
-	request->FilePath = destPath;
-	request->ParamName = "replays";
-	request->Headers.push_back("UserAgent: " + UserAgent);
-	request->RequestComplete = &CalculatedRequestComplete;
-	request->RequestId = 1;
-	request->Requester = this;
-	request->Message = "";
+	
+		Log(Client, "File copy success: " + std::string(std::filesystem::exists(destPath) ? "true" : "false"));
 
-	PostFileAsync(request);
+		PostFileRequest *request = new PostFileRequest();
+		request->Url = path;
+		request->FilePath = destPath;
+		request->ParamName = "replays";
+		request->Headers.push_back("UserAgent: " + UserAgent);
+		request->RequestComplete = &CalculatedRequestComplete;
+		request->RequestId = 1;
+		request->Requester = this;
+		request->Message = "";
+
+		PostFileAsync(request);
+	}
+	catch (std::exception e)
+	{
+		Log(Client, "AutoreplayUploader ERR: " + std::string(e.what()));
+	}
+	catch (...)
+	{
+		Log(Client, "BAD AutoreplayUploader ERR!");
+	}
 }
 
 Calculated::~Calculated()
