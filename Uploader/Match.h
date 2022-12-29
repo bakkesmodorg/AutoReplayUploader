@@ -16,7 +16,7 @@ public:
 
 	int Team0Score;
 	int Team1Score;
-
+	int WinningTeam;
 	Match();
 	~Match();
 };

@@ -1,29 +1,28 @@
 #pragma once
 
 #include <iostream>
-#include "MMRData.h"
+#include <filesystem>
+using namespace std;
 
 class Ballchasing
 {
 private:
-	std::string UserAgent;
-	std::string uploadBoundary;
+	string UserAgent;
+	string uploadBoundary;
 
 public:
-	Ballchasing(std::string userAgent, void(*Log)(void *object, std::string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
+	Ballchasing(string userAgent, void(*Log)(void *object, string message), void(*NotifyUpload)(void* object, bool result), void(*NotifyAuthResult)(void *object, bool result), void * Client);
 	~Ballchasing();
 
-	std::shared_ptr<std::string> authKey = std::make_shared<std::string>("");
-	std::shared_ptr<std::string> visibility = std::make_shared<std::string>("public");
-	
-	void(*Log)(void* object, std::string message);
+	shared_ptr<string> authKey = make_shared<string>("");
+	shared_ptr<string> visibility = make_shared<string>("public");
+
+	void(*Log)(void* object, string message);
 	void(*NotifyAuthResult)(void* object, bool result);
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(std::string replayPath);
-	void UploadMMr(MMRData);
+	void UploadReplay(std::filesystem::path startPath, std::filesystem::path replayPath);
 	void TestAuthKey();
-	bool IsValid();
 };
 
