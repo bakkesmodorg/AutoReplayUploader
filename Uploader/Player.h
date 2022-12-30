@@ -2,13 +2,13 @@
 
 #include <string>
 
-using namespace std;
 
 class Player
 {
 public:
-	string Name;
-	unsigned long long UniqueId = 0;
+	std::string Name;
+	unsigned long long UniqueId;
+	std::string EpicID;
 	int Team;
 
 	int Score;
@@ -21,5 +21,5 @@ public:
 	Player();
 	~Player();
 
-	bool WonMatch(int team0Score, int team1Score);
+	bool WonMatch(int winningTeam);
 };
