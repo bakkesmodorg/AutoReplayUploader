@@ -1,23 +1,27 @@
 #pragma once
 
 #include <iostream>
+#include "IReplayUploader.h"
 
+using namespace std;
 
-class Calculated
+#define CALCULATED_DEFAULT_REPLAY_VISIBILITY "DEFAULT"
+
+class Calculated : IReplayUploader
 {
 private:
-	std::string UserAgent;
+	string UserAgent;
 
 public:
-	Calculated(std::string userAgent, void(*log)(void* object, std::string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
+	Calculated(string userAgent, void(*log)(void* object, string message), void(*NotifyUploadResult)(void* object, bool result), void* client);
 	~Calculated();
 
-	std::shared_ptr<std::string> visibility = std::make_shared<std::string>("DEFAULT");
+	shared_ptr<string> visibility = make_shared<string>(CALCULATED_DEFAULT_REPLAY_VISIBILITY);
 
-	void(*Log)(void* object, std::string message);
+	void(*Log)(void* object, string message);
 	void(*NotifyUploadResult)(void* object, bool result);
 	void* Client;
 
-	void UploadReplay(std::string replayPath, std::string playerId);
+	void UploadReplay(string replayPath, string playerId);
 };
 
