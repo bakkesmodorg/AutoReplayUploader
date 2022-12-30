@@ -12,6 +12,7 @@ Ballchasing::Ballchasing(string userAgent, void(*Log)(void *object, string messa
 	this->NotifyUploadResult = NotifyUploadResult;
 	this->NotifyAuthResult = NotifyAuthResult;
 	this->Client = Client;
+	this->pluginLoadTime = chrono::steady_clock::now();
 }
 
 void BallchasingRequestComplete(PostFileRequest* ctx)
@@ -71,7 +72,7 @@ void BallchasingRequestComplete(GetRequest* ctx)
 	}
 }
 
-void Ballchasing::UploadReplay(string replayPath)
+void Ballchasing::UploadReplay(string replayPath, string playerId)
 {
 	if (!IsValid() || replayPath.empty())
 	{
@@ -145,6 +146,24 @@ void Ballchasing::TestAuthKey()
 	request->Requester = this;
 
 	GetAsync(request);
+}
+
+void Ballchasing::OnBallChasingAuthKeyChanged(string& oldVal)
+{
+	if (authKey->size() > 0 &&         // We don't test the auth key if the size of the auth key is empty
+		authKey->compare(oldVal) != 0) // We don't test unless the value has changed
+	{
+		auto elapsed = chrono::steady_clock::now() - pluginLoadTime;
+		if (chrono::duration_cast<chrono::milliseconds>(elapsed) < chrono::milliseconds(5000))
+		{
+			this->Log(this->Client, "Not checking auth key since plugin was loaded recently");
+		}
+		else
+		{
+			// value changed so test auth key
+			TestAuthKey();
+		}
+	}
 }
 
 bool Ballchasing::IsValid()
