@@ -10,6 +10,7 @@
 
 #define DEAULT_EXPORT_PATH "./bakkesmod/data/"
 #define DEFAULT_REPLAY_NAME_TEMPLATE "{YEAR}-{MONTH}-{DAY}.{HOUR}.{MIN} {PLAYER} {MODE} {WINLOSS}"
+#define ONLINE_FREEPLAY_PLAYLIST_ID 73
 
 // TODO: uncomment or remove #ifdef's when new Bakkes mod API becomes available that has Toast notifications
 //#define TOAST
@@ -25,6 +26,7 @@ private:
 	std::shared_ptr<bool> uploadToCalculated = std::make_shared<bool>(false);
 	std::shared_ptr<bool> uploadToBallchasing = std::make_shared<bool>(false);
 	std::shared_ptr<bool> uploadToBallchasingMMR = std::make_shared<bool>(false);
+	std::shared_ptr<bool> uploadOnlineFreeplay = std::make_shared<bool>(false);
 
 	// Replay name template variables
 	std::shared_ptr<int> templateSequence = std::make_shared<int>(0);

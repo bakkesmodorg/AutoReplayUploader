@@ -15,3 +15,6 @@ Auto replay uploader
 1|Save all replay files to export filepath below|cl_autoreplayupload_save
 12|Path to export replays to|cl_autoreplayupload_filepath
 9|Note: For this to work, you do NOT have to have "save all replays" enabled!
+8|
+1|Upload Online Freeplay replays|cl_autoreplayupload_online_freeplay
+9|Note: You probably do not want to upload Online Freeplay replays.
