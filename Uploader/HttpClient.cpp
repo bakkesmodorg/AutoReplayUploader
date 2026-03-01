@@ -46,7 +46,7 @@ long PostFile(PostFileRequest* ctx)
 		request.setOpt(new curlpp::options::SslVerifyPeer(false));
 		{
 			curlpp::Forms formParts;
-			formParts.push_back(new curlpp::FormParts::File(ctx->ParamName, ctx->FilePath));
+			formParts.push_back(new curlpp::FormParts::File(ctx->ParamName, ctx->FilePath.string()));
 			request.setOpt(new curlpp::options::HttpPost(formParts));
 		}
 

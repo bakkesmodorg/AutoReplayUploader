@@ -8,6 +8,7 @@ class Player
 public:
 	std::string Name;
 	unsigned long long UniqueId;
+	std::string EpicID;
 	int Team;
 
 	int Score;
@@ -20,5 +21,5 @@ public:
 	Player();
 	~Player();
 
-	bool WonMatch(int team0Score, int team1Score);
+	bool WonMatch(int winningTeam);
 };

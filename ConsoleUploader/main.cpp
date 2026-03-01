@@ -36,7 +36,7 @@ int main()
 	Ballchasing* ballchasing = new Ballchasing("consoleuploader", &Log, &BallchasingUploadComplete, &BallchasingAuthTestComplete, NULL);
 	*(ballchasing->authKey) = "test";
 	*(ballchasing->visibility) = "public";
-	ballchasing->UploadReplay(replayFile);
+	ballchasing->UploadReplay(replayFile, "76561198011976380");
 
 	Calculated* calculated = new Calculated("consoleuploader", &Log, &CalculatedUploadComplete, NULL);
 	*(calculated->visibility) = "PUBLIC";

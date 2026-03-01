@@ -8,7 +8,7 @@ Player::~Player()
 {
 }
 
-bool Player::WonMatch(int team0Score, int team1Score)
+bool Player::WonMatch(int winningTeam)
 {
-	return Team == 0 ? team0Score > team1Score : team1Score > team0Score;
+	return Team == winningTeam;
 }
